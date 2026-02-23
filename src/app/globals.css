@@ -1,33 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+}
+select, option {
+  background-color: #0b1220;
+  color: #eaf2ff;
+}
+:root {
+  --bg: #050812;
+  --text: #eaf2ff;
+  --muted: #a9b6cc;
+
+  /* blue + aqua accents */
+  --accent: #26c6ff;
+  --accent2: #00ffd5;
+
+  /* matte surfaces */
+  --card: rgba(10, 16, 30, 0.72);
+  --card2: rgba(10, 16, 30, 0.55);
+
+  /* slightly stronger borders so boxes pop */
+  --border: rgba(50, 81, 125, 0.22);
+  --border2: rgba(22, 142, 186, 0.28);
+
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --accent: #0077ff;
+    --accent2: #00b8ff;
+    --card: rgba(255, 255, 255, 0.85);
+    --card2: rgba(255, 255, 255, 0.72);
+    --border: rgba(15, 23, 42, 0.16);
+    --border2: rgba(0, 119, 255, 0.18);
+    --shadow: 0 20px 60px rgba(2, 6, 23, 0.14);
   }
 }
 
 html,
 body {
+  height: 100%;
   max-width: 100vw;
   overflow-x: hidden;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* matte tinted background accents */
+  background-image:
+    radial-gradient(1100px 700px at 15% 18%, rgba(38, 198, 255, 0.20), transparent 65%),
+    radial-gradient(900px 600px at 80% 25%, rgba(0, 255, 213, 0.12), transparent 55%),
+    radial-gradient(1200px 900px at 50% 90%, rgba(38, 198, 255, 0.12), transparent 60%);
+  background-attachment: fixed;
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 a {
@@ -35,8 +75,85 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+/* Better focus + selection */
+@layer base {
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(38, 198, 255, 0.30);
+    border-color: rgba(38, 198, 255, 0.55);
+  }
+
+  ::selection {
+    background: rgba(38, 198, 255, 0.22);
+  }
+}
+
+/* Optional utility classes you can use gradually */
+@layer components {
+  .surface {
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border-radius: 16px;
+  }
+
+  .surface-accent {
+    border: 1px solid var(--border2);
+    background: linear-gradient(135deg, rgba(38, 198, 255, 0.10), rgba(0, 0, 0, 0));
+  }
+
+  .muted-border {
+    border-color: var(--border);
+  }
+}
+:root {
+  /* keep your existing ones, add/override these */
+  --card: rgba(9, 16, 28, 0.72);
+  --border: rgba(255, 255, 255, 0.10);
+  --borderBlue: rgba(38, 198, 255, 0.35);
+  --glowBlue: rgba(38, 198, 255, 0.18);
+  --glowGreen: rgba(0, 255, 213, 0.14);
+}
+
+/* global “premium card” look */
+@layer components {
+  .glass {
+    background: linear-gradient(
+      135deg,
+      rgba(38, 198, 255, 0.10),
+      rgba(0, 0, 0, 0)
+    );
+    border: 1px solid var(--borderBlue);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 24px 70px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .glass-soft {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 24px 70px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .glass-green {
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 213, 0.12),
+      rgba(38, 198, 255, 0.10)
+    );
+    border: 1px solid rgba(0, 255, 213, 0.22);
+    box-shadow:
+      0 0 40px rgba(0, 255, 213, 0.10),
+      0 24px 70px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .pill {
+    border: 1px solid rgba(38, 198, 255, 0.35);
+    background: rgba(38, 198, 255, 0.10);
   }
 }
