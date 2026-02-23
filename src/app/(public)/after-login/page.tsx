@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AfterLoginPage() {
+function AfterLoginInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const next = sp.get("next") || "/home";
 
   useEffect(() => {
-    // Always ask role after login
-    router.replace(`/setup/role?next=${encodeURIComponent(next)}`);
-  }, [router, next]);
+    const next = sp.get("next") || "/home";
+
+    // basic safety: only allow internal paths
+    const safe = next.startsWith("/") ? next : "/home";
+
+    router.replace(safe);
+  }, [sp, router]);
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
-      <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/60">
-        Redirecting…
-      </div>
+    <main style={{ padding: 24 }}>
+      <p>Redirecting...</p>
     </main>
+  );
+}
+
+export default function AfterLoginPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: 24 }}><p>Loading...</p></main>}>
+      <AfterLoginInner />
+    </Suspense>
   );
 }
