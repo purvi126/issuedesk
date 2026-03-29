@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-import { getIssues, type Issue } from "@/lib/store";
+import { getIssues, updateIssue, type Issue } from "@/lib/store";
 
 type ViewMode = "board" | "list";
 
@@ -13,6 +13,15 @@ export default function AdminBoardPage() {
   const [view, setView] = useState<ViewMode>("board");
   const [issues, setIssues] = useState<Issue[]>([]);
 
+  function refreshIssues() {
+    setIssues(getIssues());
+  }
+
+  function handleUpdateIssue(id: string, patch: Partial<Issue>) {
+    updateIssue(id, patch);
+    refreshIssues();
+  }
+
   useEffect(() => {
     const role = getStoredRole();
 
@@ -21,93 +30,127 @@ export default function AdminBoardPage() {
       return;
     }
 
+    refreshIssues();
     setReady(true);
   }, [router]);
 
-  const openIssues = useMemo(
-    () => issues.filter((issue: Issue) => issue.status === "OPEN"),
+  useEffect(() => {
+    function handleWindowFocus() {
+      refreshIssues();
+    }
+
+    function handleStorage() {
+      refreshIssues();
+    }
+
+    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const pendingIssues = useMemo(
+    () =>
+      issues.filter(
+        (issue) => (issue.reviewState ?? "PENDING") === "PENDING"
+      ),
     [issues]
   );
 
-  const inProgressIssues = useMemo(
-    () => issues.filter((issue: Issue) => issue.status === "IN_PROGRESS"),
+  const assignedIssues = useMemo(
+    () =>
+      issues.filter(
+        (issue) =>
+          issue.reviewState === "ASSIGNED" && issue.status !== "RESOLVED"
+      ),
     [issues]
   );
 
-  const resolvedIssues = useMemo(
-    () => issues.filter((issue: Issue) => issue.status === "RESOLVED"),
+  const rejectedIssues = useMemo(
+    () => issues.filter((issue) => issue.reviewState === "REJECTED"),
     [issues]
+  );
+
+  const visibleListIssues = useMemo(
+    () => [...pendingIssues, ...assignedIssues, ...rejectedIssues],
+    [pendingIssues, assignedIssues, rejectedIssues]
   );
 
   if (!ready) return null;
 
   return (
-    <main className="min-h-screen px-6 py-8">
+    <main className="min-h-screen px-6 py-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white">
               Admin Board
             </h1>
             <p className="mt-2 text-sm text-white/60">
-              Monitor issue flow across campus.
+              Review incoming issues and route them to staff or reject them.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setIssues(getIssues())}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
+              onClick={refreshIssues}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
             >
               Refresh
             </button>
 
-            <button
-              type="button"
-              onClick={() => setView("board")}
-              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                view === "board"
-                  ? "border-cyan-400/30 bg-cyan-500/10 text-white"
-                  : "border-white/10 bg-white/5 text-white/80"
-              }`}
-            >
-              Board
-            </button>
+            <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
+              <button
+                type="button"
+                onClick={() => setView("board")}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  view === "board"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
+                }`}
+              >
+                Board
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                view === "list"
-                  ? "border-cyan-400/30 bg-cyan-500/10 text-white"
-                  : "border-white/10 bg-white/5 text-white/80"
-              }`}
-            >
-              List
-            </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  view === "list"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
+                }`}
+              >
+                List
+              </button>
+            </div>
           </div>
         </div>
 
         {view === "board" ? (
-          <div className="grid gap-4 lg:grid-cols-3">
-            <StatusColumn title="Open" items={openIssues} />
-            <StatusColumn title="In progress" items={inProgressIssues} />
-            <StatusColumn title="Resolved" items={resolvedIssues} />
+          <div className="grid gap-4 xl:grid-cols-3">
+            <AdminColumn title="Pending review" items={pendingIssues} onUpdate={handleUpdateIssue} />
+            <AdminColumn title="Assigned to staff" items={assignedIssues} onUpdate={handleUpdateIssue} />
+            <AdminColumn title="Rejected" items={rejectedIssues} onUpdate={handleUpdateIssue} />
           </div>
         ) : (
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
             <div className="mb-4 text-sm font-semibold text-white/70">
-              All issues
+              Admin review list
             </div>
-            <div className="space-y-3">
-              {issues.length === 0 ? (
+
+            <div className="space-y-2">
+              {visibleListIssues.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
                   No issues found.
                 </div>
               ) : (
-                issues.map((issue: Issue) => (
-                  <IssueRow key={issue.id} issue={issue} />
+                visibleListIssues.map((issue) => (
+                  <AdminIssueRow key={issue.id} issue={issue} onUpdate={handleUpdateIssue} />
                 ))
               )}
             </div>
@@ -118,15 +161,17 @@ export default function AdminBoardPage() {
   );
 }
 
-function StatusColumn({
+function AdminColumn({
   title,
   items,
+  onUpdate,
 }: {
   title: string;
   items: Issue[];
+  onUpdate: (id: string, patch: Partial<Issue>) => void;
 }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-black/20">
+    <section className="rounded-2xl border border-white/10 bg-black/20">
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <div className="text-lg font-semibold text-white">{title}</div>
         <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
@@ -134,26 +179,36 @@ function StatusColumn({
         </div>
       </div>
 
-      <div className="space-y-3 p-4">
+      <div className="space-y-2 p-3">
         {items.length === 0 ? (
           <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
             No issues
           </div>
         ) : (
-          items.map((issue: Issue) => <IssueCard key={issue.id} issue={issue} />)
+          items.map((issue) => (
+            <AdminIssueCard key={issue.id} issue={issue} onUpdate={onUpdate} />
+          ))
         )}
       </div>
     </section>
   );
 }
 
-function IssueCard({ issue }: { issue: Issue }) {
+function AdminIssueCard({
+  issue,
+  onUpdate,
+}: {
+  issue: Issue;
+  onUpdate: (id: string, patch: Partial<Issue>) => void;
+}) {
+  const reviewState = issue.reviewState ?? "PENDING";
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="text-lg font-semibold text-white/90">{issue.title}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="text-base font-semibold text-white/90">{issue.title}</div>
       <div className="mt-1 text-sm text-white/55">{issue.locationText}</div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
           {issue.category}
         </span>
@@ -164,19 +219,123 @@ function IssueCard({ issue }: { issue: Issue }) {
           {issue.priority}
         </span>
       </div>
+
+      <div className="mt-3 text-xs text-white/55">
+        Review state: <span className="font-semibold text-white/75">{reviewState}</span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {reviewState !== "ASSIGNED" ? (
+          <button
+            type="button"
+            onClick={() =>
+              onUpdate(issue.id, {
+                reviewState: "ASSIGNED",
+                status: "OPEN",
+              })
+            }
+            className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Assign to staff
+          </button>
+        ) : null}
+
+        {reviewState !== "REJECTED" ? (
+          <button
+            type="button"
+            onClick={() =>
+              onUpdate(issue.id, {
+                reviewState: "REJECTED",
+              })
+            }
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
+          >
+            Reject
+          </button>
+        ) : null}
+
+        {reviewState !== "PENDING" ? (
+          <button
+            type="button"
+            onClick={() =>
+              onUpdate(issue.id, {
+                reviewState: "PENDING",
+              })
+            }
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
+          >
+            Reset
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function IssueRow({ issue }: { issue: Issue }) {
+function AdminIssueRow({
+  issue,
+  onUpdate,
+}: {
+  issue: Issue;
+  onUpdate: (id: string, patch: Partial<Issue>) => void;
+}) {
+  const reviewState = issue.reviewState ?? "PENDING";
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="text-base font-semibold text-white/90">{issue.title}</div>
           <div className="text-sm text-white/55">{issue.locationText}</div>
+          <div className="mt-1 text-xs text-white/55">
+            Review state: <span className="font-semibold text-white/75">{reviewState}</span>
+          </div>
         </div>
-        <div className="text-xs text-white/60">{issue.status}</div>
+
+        <div className="flex flex-wrap gap-2">
+          {reviewState !== "ASSIGNED" ? (
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate(issue.id, {
+                  reviewState: "ASSIGNED",
+                  status: "OPEN",
+                })
+              }
+              className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Assign to staff
+            </button>
+          ) : null}
+
+          {reviewState !== "REJECTED" ? (
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate(issue.id, {
+                  reviewState: "REJECTED",
+                })
+              }
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
+            >
+              Reject
+            </button>
+          ) : null}
+
+          {reviewState !== "PENDING" ? (
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate(issue.id, {
+                  reviewState: "PENDING",
+                })
+              }
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
+            >
+              Reset
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

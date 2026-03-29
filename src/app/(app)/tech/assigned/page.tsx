@@ -55,18 +55,27 @@ export default function TechAssignedPage() {
     }, []);
 
     const openIssues = useMemo(
-        () => issues.filter((issue: Issue) => issue.status === "OPEN"),
+        () =>
+            issues.filter(
+                (issue: Issue) =>
+                    issue.reviewState === "ASSIGNED" && issue.status === "OPEN"
+            ),
         [issues]
     );
 
     const inProgressIssues = useMemo(
-        () => issues.filter((issue: Issue) => issue.status === "IN_PROGRESS"),
+        () =>
+            issues.filter(
+                (issue: Issue) =>
+                    issue.reviewState === "ASSIGNED" && issue.status === "IN_PROGRESS"
+            ),
         [issues]
     );
 
     const recentlyResolvedIssues = useMemo(
         () =>
             issues.filter((issue: Issue) => {
+                if (issue.reviewState !== "ASSIGNED") return false;
                 if (issue.status !== "RESOLVED") return false;
                 if (!issue.resolvedAt) return false;
                 return Date.now() - issue.resolvedAt <= RECENT_RESOLVED_MS;

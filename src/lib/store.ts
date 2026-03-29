@@ -21,6 +21,10 @@ export type Issue = {
   priority: Priority;
   status: Status;
   resolvedAt?: number;
+
+  reviewState?: "PENDING" | "ASSIGNED" | "REJECTED";
+  reviewedAt?: number;
+
   title: string;
   description: string;
 
@@ -30,7 +34,6 @@ export type Issue = {
   attachmentDataUrl?: string;
   attachmentName?: string;
 
-  // Voting (Reddit-style)
   upvoters: string[];
   downvoters: string[];
 
@@ -162,6 +165,15 @@ function migrateIssue(raw: any): Issue {
     priority: normalizePriority(raw?.priority),
     status: normalizeStatus(raw?.status),
     resolvedAt: typeof raw?.resolvedAt === "number" ? raw.resolvedAt : undefined,
+
+    reviewState:
+      raw?.reviewState === "ASSIGNED" || raw?.reviewState === "REJECTED"
+        ? raw.reviewState
+        : "PENDING",
+
+    reviewedAt:
+      typeof raw?.reviewedAt === "number" ? raw.reviewedAt : undefined,
+
     title: String(raw?.title ?? "Untitled issue"),
     description: String(raw?.description ?? ""),
 
@@ -246,6 +258,10 @@ export function addIssue(input: CreateIssueInput): Issue {
     category: input.category,
     priority: normalizePriority(input.priority),
     status: "OPEN",
+    resolvedAt: undefined,
+
+    reviewState: "PENDING",
+    reviewedAt: undefined,
 
     title: input.title,
     description: input.description,
@@ -285,6 +301,19 @@ export function updateIssue(id: string, patch: Partial<Issue>) {
       nextStatus === "RESOLVED"
         ? prev.resolvedAt ?? Date.now()
         : undefined,
+
+    reviewState:
+      patch.reviewState === "ASSIGNED" ||
+        patch.reviewState === "REJECTED" ||
+        patch.reviewState === "PENDING"
+        ? patch.reviewState
+        : prev.reviewState ?? "PENDING",
+
+    reviewedAt:
+      patch.reviewState &&
+        patch.reviewState !== (prev.reviewState ?? "PENDING")
+        ? Date.now()
+        : prev.reviewedAt,
 
     priority: patch.priority ? normalizePriority(patch.priority) : prev.priority,
     upvoters: Array.isArray(patch.upvoters) ? patch.upvoters : prev.upvoters,

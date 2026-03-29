@@ -121,13 +121,15 @@ export default function IssuesPage() {
   const oneWeekAgo = useMemo(() => Date.now() - 7 * 24 * 60 * 60 * 1000, []);
 
   const activeIssues = useMemo(() => {
-    return issues.filter((i) => i.status === "OPEN" || i.status === "IN_PROGRESS");
+    return issues.filter((i) => (i.reviewState ?? "PENDING") !== "REJECTED" &&
+      (i.status === "OPEN" || i.status === "IN_PROGRESS"));
   }, [issues]);
 
   const recentlyResolved = useMemo(() => {
     return issues
       .filter(
         (i) =>
+          (i.reviewState ?? "PENDING") !== "REJECTED" &&
           i.status === "RESOLVED" &&
           typeof i.resolvedAt === "number" &&
           i.resolvedAt >= oneWeekAgo
