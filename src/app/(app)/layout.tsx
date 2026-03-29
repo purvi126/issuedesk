@@ -1,13 +1,6 @@
-import AuthShell from "@/components/auth-shell";
-import AppSidebar from "@/components/app-sidebar";
+"use client";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthShell>
-      <div className="flex min-h-screen">
-        <AppSidebar />
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
-    </AuthShell>
-  );
-}
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { getStoredRole, type AppRole, ROLE_KEY } from "@/lib/role";

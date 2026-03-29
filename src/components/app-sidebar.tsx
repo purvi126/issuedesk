@@ -45,6 +45,7 @@ function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
   return [
     { label: "Admin Board", href: "/admin/board" },
     { label: "All Issues", href: "/issues" },
+    { label: "Notices", href: "/admin/notices" },
   ];
 }
 
@@ -99,10 +100,11 @@ export default function AppSidebar() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className={`block rounded-2xl border px-4 py-3 text-sm font-medium transition ${pathname === link.href
+                  className={`block rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                    pathname === link.href
                       ? "border-cyan-400/30 bg-cyan-500/10 text-white"
                       : "border-white/10 bg-white/5 text-white/80 hover:border-cyan-400/25 hover:bg-cyan-500/5"
-                    }`}
+                  }`}
                 >
                   {link.label}
                 </Link>

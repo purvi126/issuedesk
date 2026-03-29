@@ -8,6 +8,7 @@ import KanbanBoard from "@/components/kanban-board";
 import NoticesPopup from "@/components/notices-popup";
 import { getIssues, getScore } from "@/lib/store";
 import type { Issue, Status, Priority, Section } from "@/lib/store";
+import { clearExpiredNotices, getActiveNotices, type Notice } from "@/lib/notices";
 
 type ViewMode = "list" | "board";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
@@ -42,30 +43,18 @@ export default function IssuesPage() {
   const [creator, setCreator] = useState<string>("ALL");
   const [sort, setSort] = useState<SortMode>("NEWEST");
   const [showNotices, setShowNotices] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
 
   const isStudent = role === "STUDENT";
   const isStaff = role === "TECH";
   const isAdmin = role === "ADMIN";
   const isPrivileged = isStaff || isAdmin;
 
-  const notices = [
-    {
-      id: "n1",
-      title: "Water supply maintenance",
-      body: "Block C will have a scheduled water shutdown from 2:00 PM to 4:00 PM today.",
-      meta: "Maintenance • Today",
-    },
-    {
-      id: "n2",
-      title: "Internet downtime",
-      body: "Wi-Fi may be unstable near Library due to router replacement.",
-      meta: "Network • This week",
-    },
-  ];
-
   useEffect(() => {
     setMounted(true);
     setRole(getStoredRole());
+    clearExpiredNotices();
+    setNotices(getActiveNotices());
   }, []);
 
   useEffect(() => {
@@ -75,6 +64,14 @@ export default function IssuesPage() {
 
   useEffect(() => {
     if (!mounted || !isStudent) return;
+
+    const active = getActiveNotices();
+    setNotices(active);
+
+    if (active.length === 0) {
+      setShowNotices(false);
+      return;
+    }
 
     const seen = sessionStorage.getItem("issues_notices_seen");
     if (!seen) {
@@ -86,6 +83,8 @@ export default function IssuesPage() {
     function handleWindowFocus() {
       setIssues(getIssues());
       setRole(getStoredRole());
+      clearExpiredNotices();
+      setNotices(getActiveNotices());
     }
 
     window.addEventListener("focus", handleWindowFocus);
@@ -121,8 +120,11 @@ export default function IssuesPage() {
   const oneWeekAgo = useMemo(() => Date.now() - 7 * 24 * 60 * 60 * 1000, []);
 
   const activeIssues = useMemo(() => {
-    return issues.filter((i) => (i.reviewState ?? "PENDING") !== "REJECTED" &&
-      (i.status === "OPEN" || i.status === "IN_PROGRESS"));
+    return issues.filter(
+      (i) =>
+        (i.reviewState ?? "PENDING") !== "REJECTED" &&
+        (i.status === "OPEN" || i.status === "IN_PROGRESS")
+    );
   }, [issues]);
 
   const recentlyResolved = useMemo(() => {
@@ -203,7 +205,7 @@ export default function IssuesPage() {
 
   return (
     <>
-      {isStudent ? (
+      {isStudent && notices.length > 0 ? (
         <NoticesPopup open={showNotices} notices={notices} onClose={closeNotices} />
       ) : null}
 
