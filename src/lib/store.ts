@@ -20,7 +20,7 @@ export type Issue = {
   category: string;
   priority: Priority;
   status: Status;
-
+  resolvedAt?: number;
   title: string;
   description: string;
 
@@ -120,12 +120,12 @@ function migrateIssue(raw: any): Issue {
 
   const comments = Array.isArray(raw?.comments)
     ? raw.comments
-        .map((c: any) => ({
-          id: typeof c?.id === "string" ? c.id : `${now}_${Math.random().toString(16).slice(2)}`,
-          text: String(c?.text ?? "").trim(),
-          createdAt: typeof c?.createdAt === "number" ? c.createdAt : now,
-        }))
-        .filter((c: any) => c.text.length > 0)
+      .map((c: any) => ({
+        id: typeof c?.id === "string" ? c.id : `${now}_${Math.random().toString(16).slice(2)}`,
+        text: String(c?.text ?? "").trim(),
+        createdAt: typeof c?.createdAt === "number" ? c.createdAt : now,
+      }))
+      .filter((c: any) => c.text.length > 0)
     : [];
 
   const upvoters = Array.isArray(raw?.upvoters) ? raw.upvoters : [];
@@ -161,7 +161,7 @@ function migrateIssue(raw: any): Issue {
     category: String(raw?.category ?? "General"),
     priority: normalizePriority(raw?.priority),
     status: normalizeStatus(raw?.status),
-
+    resolvedAt: typeof raw?.resolvedAt === "number" ? raw.resolvedAt : undefined,
     title: String(raw?.title ?? "Untitled issue"),
     description: String(raw?.description ?? ""),
 
@@ -224,8 +224,8 @@ export function addIssue(input: CreateIssueInput): Issue {
   const computedLocationText =
     input.section === "HOSTEL"
       ? `${input.hostelGender ?? ""} ${input.hostelName ?? ""} Block ${input.hostelBlock ?? ""}, Room ${input.roomNumber ?? ""}`
-          .replace(/\s+/g, " ")
-          .trim()
+        .replace(/\s+/g, " ")
+        .trim()
       : `${input.buildingName ?? ""} ${input.roomNumber ?? ""}`.replace(/\s+/g, " ").trim();
 
   const createdAt = Date.now();
@@ -272,18 +272,29 @@ export function updateIssue(id: string, patch: Partial<Issue>) {
   const idx = issues.findIndex((i) => i.id === id);
   if (idx === -1) return;
 
+  const prev = issues[idx];
+  const nextStatus = patch.status ? normalizeStatus(patch.status) : prev.status;
+
   const next: Issue = {
-    ...issues[idx],
+    ...prev,
     ...patch,
-    status: patch.status ? normalizeStatus(patch.status) : issues[idx].status,
-    priority: patch.priority ? normalizePriority(patch.priority) : issues[idx].priority,
-    upvoters: Array.isArray(patch.upvoters) ? patch.upvoters : issues[idx].upvoters,
-    downvoters: Array.isArray(patch.downvoters) ? patch.downvoters : issues[idx].downvoters,
-    comments: Array.isArray(patch.comments) ? patch.comments : issues[idx].comments,
+
+    status: nextStatus,
+
+    resolvedAt:
+      nextStatus === "RESOLVED"
+        ? prev.resolvedAt ?? Date.now()
+        : undefined,
+
+    priority: patch.priority ? normalizePriority(patch.priority) : prev.priority,
+    upvoters: Array.isArray(patch.upvoters) ? patch.upvoters : prev.upvoters,
+    downvoters: Array.isArray(patch.downvoters) ? patch.downvoters : prev.downvoters,
+    comments: Array.isArray(patch.comments) ? patch.comments : prev.comments,
+
     createdById:
       typeof patch.createdById === "string"
         ? patch.createdById.trim() || undefined
-        : issues[idx].createdById,
+        : prev.createdById,
   };
 
   issues[idx] = next;

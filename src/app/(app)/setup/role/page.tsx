@@ -9,7 +9,7 @@ type Role = "STUDENT" | "ADMIN" | "TECH";
 function dashboardFor(role: Role) {
   if (role === "ADMIN") return "/admin/board";
   if (role === "TECH") return "/tech/assigned";
-  return "/home"; // ✅ student goes to home after login
+  return "/issues"; // ✅ student goes to issues after login
 }
 
 export default function SetupRolePage() {
@@ -19,15 +19,15 @@ export default function SetupRolePage() {
   // if you still pass ?next=..., honor it only for admin/tech
   const next = sp.get("next") || "";
 
-  const [picked, setPicked] = useState<Role>("STUDENT");
+  const [picked, setPicked] = useState<Role | null>(null);
 
   function choose(role: Role) {
     setPicked(role);
-    localStorage.setItem("issuedesk_role", role);
+    sessionStorage.setItem("issuedesk_role", role);
 
     // ✅ Student always goes home after login
     if (role === "STUDENT") {
-      router.replace("/home");
+      router.replace("/issues");
       return;
     }
 

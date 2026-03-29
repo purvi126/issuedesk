@@ -9,23 +9,18 @@ function AfterLoginInner() {
 
   useEffect(() => {
     const next = sp.get("next") || "/home";
-
-    // basic safety: only allow internal paths
     const safe = next.startsWith("/") ? next : "/home";
 
-    router.replace(safe);
+    sessionStorage.removeItem("issuedesk_role");
+    router.replace(`/setup/role?next=${encodeURIComponent(safe)}`);
   }, [sp, router]);
 
-  return (
-    <main style={{ padding: 24 }}>
-      <p>Redirecting...</p>
-    </main>
-  );
+  return <div>Redirecting...</div>;
 }
 
 export default function AfterLoginPage() {
   return (
-    <Suspense fallback={<main style={{ padding: 24 }}><p>Loading...</p></main>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <AfterLoginInner />
     </Suspense>
   );
