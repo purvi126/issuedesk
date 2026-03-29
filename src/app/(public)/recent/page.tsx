@@ -11,8 +11,6 @@ import type { Issue, Status, Priority, Section } from "@/lib/store";
 type ViewMode = "board" | "list";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
 
-const STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "RESOLVED"];
-
 function statusLabel(s: Status) {
   if (s === "IN_PROGRESS") return "In progress";
   if (s === "RESOLVED") return "Resolved";
@@ -28,10 +26,10 @@ export default function AllIssuesPage() {
   const router = useRouter();
   const sp = useSearchParams();
 
+  const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
-  const [refreshTick, setRefreshTick] = useState(0);
+  const [issues, setIssues] = useState<Issue[]>([]);
 
-  // filters
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [priority, setPriority] = useState<Priority | "ALL">("ALL");
@@ -41,24 +39,35 @@ export default function AllIssuesPage() {
   const [sort, setSort] = useState<SortMode>("NEWEST");
 
   useEffect(() => {
+    setMounted(true);
     setView(sp.get("view") === "board" ? "board" : "list");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sp]);
 
   useEffect(() => {
-    const onFocus = () => setRefreshTick((t) => t + 1);
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, []);
+    if (!mounted) return;
 
-  const issues = useMemo(() => {
-    void refreshTick;
-    return getIssues();
-  }, [refreshTick]);
+    const loadIssues = () => {
+      try {
+        setIssues(getIssues());
+      } catch (error) {
+        console.error("Failed to load issues:", error);
+        setIssues([]);
+      }
+    };
+
+    loadIssues();
+
+    const onFocus = () => loadIssues();
+    window.addEventListener("focus", onFocus);
+
+    return () => window.removeEventListener("focus", onFocus);
+  }, [mounted]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
-    for (const i of issues) if (i.category) set.add(i.category);
+    for (const i of issues) {
+      if (i.category) set.add(i.category);
+    }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [issues]);
 
@@ -81,7 +90,8 @@ export default function AllIssuesPage() {
 
     const hitsQuery = (i: Issue) => {
       if (!query) return true;
-      const hay = `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
+      const hay =
+        `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
       return hay.includes(query);
     };
 
@@ -125,7 +135,22 @@ export default function AllIssuesPage() {
   }
 
   function refresh() {
-    setRefreshTick((t) => t + 1);
+    try {
+      setIssues(getIssues());
+    } catch (error) {
+      console.error("Failed to refresh issues:", error);
+      setIssues([]);
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
+          Loading recent issues...
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -189,7 +214,6 @@ export default function AllIssuesPage() {
           </div>
         ) : (
           <>
-            {/* Filters */}
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
               <div className="grid gap-4">
                 <div className="grid gap-3 lg:grid-cols-6">
@@ -207,7 +231,7 @@ export default function AllIssuesPage() {
                     <div className="mb-2 text-xs font-semibold text-white/60">Priority</div>
                     <select
                       value={priority}
-                      onChange={(e) => setPriority(e.target.value as any)}
+                      onChange={(e) => setPriority(e.target.value as Priority | "ALL")}
                       className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                     >
                       <option value="ALL">All</option>
@@ -221,7 +245,7 @@ export default function AllIssuesPage() {
                     <div className="mb-2 text-xs font-semibold text-white/60">Section</div>
                     <select
                       value={section}
-                      onChange={(e) => setSection(e.target.value as any)}
+                      onChange={(e) => setSection(e.target.value as Section | "ALL")}
                       className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                     >
                       <option value="ALL">All</option>
@@ -234,7 +258,7 @@ export default function AllIssuesPage() {
                     <div className="mb-2 text-xs font-semibold text-white/60">Status</div>
                     <select
                       value={status}
-                      onChange={(e) => setStatus(e.target.value as any)}
+                      onChange={(e) => setStatus(e.target.value as Status | "ALL")}
                       className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                     >
                       <option value="ALL">All</option>
@@ -248,7 +272,7 @@ export default function AllIssuesPage() {
                     <div className="mb-2 text-xs font-semibold text-white/60">Sort</div>
                     <select
                       value={sort}
-                      onChange={(e) => setSort(e.target.value as any)}
+                      onChange={(e) => setSort(e.target.value as SortMode)}
                       className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                     >
                       <option value="NEWEST">Newest</option>
@@ -315,7 +339,6 @@ export default function AllIssuesPage() {
               </div>
             </div>
 
-            {/* Results */}
             <div className="mt-4">
               {filtered.length === 0 ? (
                 <EmptyState title="No matches" subtitle="Try adjusting filters or search." />
@@ -325,7 +348,7 @@ export default function AllIssuesPage() {
                     <button
                       key={i.id}
                       onClick={() => router.push(`/issues/${i.id}`)}
-                      className="text-left rounded-2xl border border-white/10 bg-white/[0.04] p-4 hover:border-blue-400/25 hover:bg-blue-500/5"
+                      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -335,7 +358,7 @@ export default function AllIssuesPage() {
                           <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
                           <div className="mt-2 text-xs text-white/55">
                             {i.section} • {i.category} • by{" "}
-                            <span className="text-white/75 font-semibold">{creatorLabel(i)}</span>
+                            <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
                             {i.attachmentDataUrl ? " • Attachment" : ""}
                           </div>
                         </div>

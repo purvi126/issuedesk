@@ -4,35 +4,34 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-import { addIssue, fileToDataUrl } from "@/lib/store";
-
 type Priority = "LOW" | "MED" | "HIGH";
 type Section = "HOSTEL" | "CAMPUS";
 type HostelGender = "MEN" | "WOMEN";
 
 type DraftStep1 = {
   section: Section;
-
-  // HOSTEL
   hostelGender?: HostelGender;
   hostelName?: string;
-  block?: string; // your draft uses "block"
-  hostelBlock?: string; // allow either
+  block?: string;
+  hostelBlock?: string;
   roomNumber?: string;
-
-  // CAMPUS
+  campusBlock?: string;
   buildingName?: string;
-
-  // optional manual override
   locationText?: string;
 };
 
-const CATEGORIES = ["Electrical", "Plumbing", "Carpentry", "Cleaning", "IT Support", "Others"] as const;
+const CATEGORIES = [
+  "Electrical",
+  "Plumbing",
+  "Carpentry",
+  "Cleaning",
+  "IT Support",
+  "Others",
+] as const;
 
 export default function NewIssueDetailsPage() {
   const router = useRouter();
-  const { status } = useSession();
-  const authed = status === "authenticated";
+  const { data: session, status } = useSession();
 
   const [step1, setStep1] = useState<DraftStep1 | null>(null);
 
@@ -41,6 +40,7 @@ export default function NewIssueDetailsPage() {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const raw = localStorage.getItem("issuedesk_draft_step1");
@@ -48,6 +48,7 @@ export default function NewIssueDetailsPage() {
       router.replace("/new");
       return;
     }
+
     try {
       setStep1(JSON.parse(raw));
     } catch {
@@ -56,7 +57,6 @@ export default function NewIssueDetailsPage() {
     }
   }, [router]);
 
-  // safety fallback (proxy should already protect /new/**)
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace(`/login?next=${encodeURIComponent("/new/issue")}`);
@@ -68,59 +68,58 @@ export default function NewIssueDetailsPage() {
       !!step1 &&
       category.trim().length > 0 &&
       title.trim().length > 0 &&
-      description.trim().length > 0
+      description.trim().length > 0 &&
+      !submitting
     );
-  }, [category, title, description, step1]);
+  }, [category, title, description, step1, submitting]);
 
   async function createIssue() {
     if (!canSubmit || !step1) return;
 
-    let attachmentDataUrl: string | undefined;
-    let attachmentName: string | undefined;
+    try {
+      setSubmitting(true);
 
-    if (imageFile) {
-      attachmentDataUrl = await fileToDataUrl(imageFile);
-      attachmentName = imageFile.name;
+      const hostelBlock = step1.hostelBlock ?? step1.block;
+      const createdByEmail = session?.user?.email ?? "student@vit.ac.in";
+
+      const payload = {
+        section: step1.section,
+        hostelGender: step1.hostelGender ?? "",
+        hostelName: step1.hostelName ?? "",
+        hostelBlock: hostelBlock ?? "",
+        campusBlock: step1.campusBlock ?? step1.buildingName ?? "",
+        roomNumber: step1.roomNumber ?? "",
+        locationText: step1.locationText ?? "",
+        category,
+        priority,
+        title: title.trim(),
+        description: description.trim(),
+        createdByEmail,
+        attachmentName: imageFile?.name ?? "",
+      };
+
+      const res = await fetch("/api/issues", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || data?.message || "Failed to create issue");
+      }
+
+      localStorage.removeItem("issuedesk_draft_step1");
+      router.push("/recent");
+    } catch (error) {
+      console.error("Create issue failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to create issue");
+    } finally {
+      setSubmitting(false);
     }
-
-    const hostelBlock = step1.hostelBlock ?? step1.block;
-
-    const created = addIssue({
-      section: step1.section,
-
-      hostelGender: step1.hostelGender,
-      hostelName: step1.hostelName,
-      hostelBlock,
-
-      buildingName: step1.buildingName,
-
-      roomNumber: step1.roomNumber,
-      locationText: step1.locationText,
-
-      category,
-      priority,
-      title: title.trim(),
-      description: description.trim(),
-
-      attachmentDataUrl,
-      attachmentName,
-    } as any);
-
-    localStorage.removeItem("issuedesk_draft_step1");
-
-    const createdId =
-      (typeof created === "string"
-        ? created
-        : created && typeof (created as any).id === "string"
-          ? (created as any).id
-          : null) ?? null;
-
-    if (createdId) {
-      router.push(`/issues/${createdId}`);
-      return;
-    }
-
-    router.push("/recent");
   }
 
   if (!step1) {
@@ -140,7 +139,7 @@ export default function NewIssueDetailsPage() {
           Now describe the <span className="text-blue-200">issue</span>
         </h1>
         <p className="mt-3 text-center text-sm text-white/60">
-          Fill the details. You’ll be redirected to the issue page after creation.
+          Fill the details. You’ll be redirected after creation.
         </p>
 
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm backdrop-blur">
@@ -217,10 +216,10 @@ export default function NewIssueDetailsPage() {
                 "h-11 w-full rounded-xl border px-4 text-sm font-semibold transition",
                 canSubmit
                   ? "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15"
-                  : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed",
+                  : "cursor-not-allowed border-white/10 bg-white/5 text-white/40",
               ].join(" ")}
             >
-              Create issue
+              {submitting ? "Creating..." : "Create issue"}
             </button>
 
             <button
