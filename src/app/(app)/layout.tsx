@@ -4,8 +4,10 @@ import AppSidebar from "@/components/app-sidebar";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthShell>
-      <AppSidebar />
-      <main className="min-h-screen md:pl-[300px] pt-16 md:pt-0">{children}</main>
+      <div className="flex min-h-screen">
+        <AppSidebar />
+        <main className="min-w-0 flex-1">{children}</main>
+      </div>
     </AuthShell>
   );
 }

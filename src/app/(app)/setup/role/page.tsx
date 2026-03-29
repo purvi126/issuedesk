@@ -6,44 +6,59 @@ import { useState } from "react";
 
 type Role = "STUDENT" | "ADMIN" | "TECH";
 
+const ROLE_KEY = "issuedesk_role";
+
 function dashboardFor(role: Role) {
   if (role === "ADMIN") return "/admin/board";
   if (role === "TECH") return "/tech/assigned";
-  return "/issues"; // ✅ student goes to issues after login
+  return "/issues";
+}
+
+function isAllowedNext(role: Role, next: string) {
+  if (!next.startsWith("/")) return false;
+
+  if (role === "STUDENT") {
+    return next === "/issues" || next.startsWith("/my-issues");
+  }
+
+  if (role === "TECH") {
+    return next.startsWith("/tech");
+  }
+
+  if (role === "ADMIN") {
+    return next.startsWith("/admin");
+  }
+
+  return false;
 }
 
 export default function SetupRolePage() {
   const router = useRouter();
   const sp = useSearchParams();
-
-  // if you still pass ?next=..., honor it only for admin/tech
-  const next = sp.get("next") || "";
-
   const [picked, setPicked] = useState<Role | null>(null);
+
+  const next = sp.get("next") || "";
 
   function choose(role: Role) {
     setPicked(role);
-    sessionStorage.setItem("issuedesk_role", role);
+    sessionStorage.setItem(ROLE_KEY, role);
 
-    // ✅ Student always goes home after login
-    if (role === "STUDENT") {
-      router.replace("/issues");
-      return;
-    }
+    const fallback = dashboardFor(role);
 
-    // Admin/Tech: honor next if present, else go to dashboard
-    if (next) {
+    if (next && isAllowedNext(role, next)) {
       router.replace(next);
       return;
     }
 
-    router.replace(dashboardFor(role));
+    router.replace(fallback);
   }
 
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Choose role</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Choose role
+        </h1>
         <p className="mt-2 text-sm text-white/60">Tap one to continue.</p>
 
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">

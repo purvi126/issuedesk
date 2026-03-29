@@ -2,204 +2,182 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import EmptyState from "@/components/empty-state";
-import { getIssues } from "@/lib/store";
-import type { Issue } from "@/lib/store";
-import KanbanBoard from "@/components/kanban-board";
+import { getStoredRole } from "@/lib/role";
+import { getIssues, type Issue } from "@/lib/store";
 
-function ghostBtn(active = false): React.CSSProperties {
-    return {
-        padding: "10px 12px",
-        borderRadius: 12,
-        border: active ? "1px solid rgba(0,190,255,0.55)" : "1px solid var(--border)",
-        background: active ? "rgba(0,190,255,0.10)" : "rgba(255,255,255,0.03)",
-        color: "var(--text)",
-        fontWeight: 1000,
-        cursor: "pointer",
-    };
-}
+type ViewMode = "board" | "list";
 
-function card(): React.CSSProperties {
-    return {
-        border: "1px solid var(--border)",
-        borderRadius: 16,
-        background: "var(--card)",
-        boxShadow: "var(--shadow)",
-        padding: 14,
-    };
-}
+export default function AdminBoardPage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+  const [view, setView] = useState<ViewMode>("board");
+  const [issues, setIssues] = useState<Issue[]>([]);
 
-export default function RecentPage() {
-    const router = useRouter();
+  useEffect(() => {
+    const role = getStoredRole();
 
-    const [mounted, setMounted] = useState(false);
-    const [issues, setIssues] = useState<Issue[]>([]);
-    const [view, setView] = useState<"board" | "list">("board");
-
-    function refresh() {
-        setIssues(getIssues());
+    if (role !== "ADMIN") {
+      router.replace("/setup/role");
+      return;
     }
 
-    useEffect(() => {
-        setMounted(true);
-        refresh();
+    setReady(true);
+  }, [router]);
 
-        const sp = new URLSearchParams(window.location.search);
-        setView(sp.get("view") === "list" ? "list" : "board");
-    }, []);
+  const openIssues = useMemo(
+    () => issues.filter((issue: Issue) => issue.status === "OPEN"),
+    [issues]
+  );
 
-    useEffect(() => {
-        const onFocus = () => refresh();
-        window.addEventListener("focus", onFocus);
-        return () => window.removeEventListener("focus", onFocus);
-    }, []);
+  const inProgressIssues = useMemo(
+    () => issues.filter((issue: Issue) => issue.status === "IN_PROGRESS"),
+    [issues]
+  );
 
-    const newest = issues[0];
+  const resolvedIssues = useMemo(
+    () => issues.filter((issue: Issue) => issue.status === "RESOLVED"),
+    [issues]
+  );
 
-    const hostelIssues = useMemo(() => issues.filter((i) => i.section === "HOSTEL"), [issues]);
-    const campusIssues = useMemo(() => issues.filter((i) => i.section === "CAMPUS"), [issues]);
+  if (!ready) return null;
 
-    function go(nextView: "board" | "list") {
-        setView(nextView);
-        router.push(nextView === "board" ? "/recent" : "/recent?view=list");
-    }
+  return (
+    <main className="min-h-screen px-6 py-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight text-white">
+              Admin Board
+            </h1>
+            <p className="mt-2 text-sm text-white/60">
+              Monitor issue flow across campus.
+            </p>
+          </div>
 
-    if (!mounted) {
-        return (
-            <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-                <div style={{ color: "var(--muted)" }}>Loading…</div>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                }}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIssues(getIssues())}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
             >
-                <h2 style={{ margin: 0, fontSize: 34, fontWeight: 1000 }}>Dashboard</h2>
+              Refresh
+            </button>
 
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button onClick={() => router.push("/setup/section")} style={ghostBtn()}>
-                        + New issue
-                    </button>
+            <button
+              type="button"
+              onClick={() => setView("board")}
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                view === "board"
+                  ? "border-cyan-400/30 bg-cyan-500/10 text-white"
+                  : "border-white/10 bg-white/5 text-white/80"
+              }`}
+            >
+              Board
+            </button>
 
-                    <button onClick={() => go("board")} style={ghostBtn(view === "board")}>
-                        Board
-                    </button>
-                    <button onClick={() => go("list")} style={ghostBtn(view === "list")}>
-                        List
-                    </button>
-                </div>
-            </div>
-
-            {issues.length === 0 ? (
-                <div style={{ marginTop: 18 }}>
-                    <EmptyState
-                        title="No issues yet"
-                        subtitle="When students raise issues, they'll appear here."
-                    />
-                </div>
-            ) : (
-                <>
-                    <div style={{ marginTop: 18, ...card() }}>
-                        <div style={{ fontWeight: 1000, color: "var(--muted)" }}>Latest</div>
-                        <div style={{ marginTop: 8, fontWeight: 1000, fontSize: 20 }}>
-                            {newest?.title || "(Untitled)"}
-                        </div>
-                        <div style={{ color: "var(--muted)", marginTop: 6 }}>{newest?.locationText}</div>
-
-                        <button
-                            onClick={() => newest?.id && router.push(`/issues/${newest.id}`)}
-                            style={{ ...ghostBtn(false), marginTop: 12 }}
-                        >
-                            Open details
-                        </button>
-                    </div>
-
-                    <div style={{ marginTop: 18 }}>
-                        {view === "board" ? (
-                            <KanbanBoard issues={issues} role="STUDENT" />
-                        ) : (
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-                                <div>
-                                    <div style={{ fontWeight: 1000, marginBottom: 10 }}>Hostel</div>
-                                    {hostelIssues.length === 0 ? (
-                                        <div
-                                            style={{
-                                                padding: 14,
-                                                border: "1px solid var(--border)",
-                                                borderRadius: 16,
-                                                color: "var(--muted)",
-                                            }}
-                                        >
-                                            No hostel issues yet.
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: "grid", gap: 12 }}>
-                                            {hostelIssues.map((i) => (
-                                                <button
-                                                    key={i.id}
-                                                    onClick={() => router.push(`/issues/${i.id}`)}
-                                                    style={{ ...card(), textAlign: "left", cursor: "pointer" }}
-                                                >
-                                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                                                        <div style={{ fontWeight: 1000 }}>{i.title || "(Untitled)"}</div>
-                                                        <div style={{ color: "var(--muted)", fontWeight: 900 }}>
-                                                            {i.priority} • {i.status}
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ marginTop: 6, color: "var(--muted)" }}>{i.locationText}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <div style={{ fontWeight: 1000, marginBottom: 10 }}>Campus</div>
-                                    {campusIssues.length === 0 ? (
-                                        <div
-                                            style={{
-                                                padding: 14,
-                                                border: "1px solid var(--border)",
-                                                borderRadius: 16,
-                                                color: "var(--muted)",
-                                            }}
-                                        >
-                                            No campus issues yet.
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: "grid", gap: 12 }}>
-                                            {campusIssues.map((i) => (
-                                                <button
-                                                    key={i.id}
-                                                    onClick={() => router.push(`/issues/${i.id}`)}
-                                                    style={{ ...card(), textAlign: "left", cursor: "pointer" }}
-                                                >
-                                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                                                        <div style={{ fontWeight: 1000 }}>{i.title || "(Untitled)"}</div>
-                                                        <div style={{ color: "var(--muted)", fontWeight: 900 }}>
-                                                            {i.priority} • {i.status}
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ marginTop: 6, color: "var(--muted)" }}>{i.locationText}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                view === "list"
+                  ? "border-cyan-400/30 bg-cyan-500/10 text-white"
+                  : "border-white/10 bg-white/5 text-white/80"
+              }`}
+            >
+              List
+            </button>
+          </div>
         </div>
-    );
+
+        {view === "board" ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            <StatusColumn title="Open" items={openIssues} />
+            <StatusColumn title="In progress" items={inProgressIssues} />
+            <StatusColumn title="Resolved" items={resolvedIssues} />
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+            <div className="mb-4 text-sm font-semibold text-white/70">
+              All issues
+            </div>
+            <div className="space-y-3">
+              {issues.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
+                  No issues found.
+                </div>
+              ) : (
+                issues.map((issue: Issue) => (
+                  <IssueRow key={issue.id} issue={issue} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function StatusColumn({
+  title,
+  items,
+}: {
+  title: string;
+  items: Issue[];
+}) {
+  return (
+    <section className="rounded-3xl border border-white/10 bg-black/20">
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="text-lg font-semibold text-white">{title}</div>
+        <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
+          {items.length}
+        </div>
+      </div>
+
+      <div className="space-y-3 p-4">
+        {items.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
+            No issues
+          </div>
+        ) : (
+          items.map((issue: Issue) => <IssueCard key={issue.id} issue={issue} />)
+        )}
+      </div>
+    </section>
+  );
+}
+
+function IssueCard({ issue }: { issue: Issue }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="text-lg font-semibold text-white/90">{issue.title}</div>
+      <div className="mt-1 text-sm text-white/55">{issue.locationText}</div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+          {issue.category}
+        </span>
+        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+          {issue.section}
+        </span>
+        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+          {issue.priority}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function IssueRow({ issue }: { issue: Issue }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="text-base font-semibold text-white/90">{issue.title}</div>
+          <div className="text-sm text-white/55">{issue.locationText}</div>
+        </div>
+        <div className="text-xs text-white/60">{issue.status}</div>
+      </div>
+    </div>
+  );
 }

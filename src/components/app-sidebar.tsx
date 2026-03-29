@@ -1,261 +1,140 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { getStoredRole, type AppRole, ROLE_KEY } from "@/lib/role";
 
-type Role = "STUDENT" | "ADMIN" | "TECH";
-type NavItem = { label: string; href: string; restricted?: boolean; emphasis?: boolean };
+type SidebarLink = {
+  label: string;
+  href: string;
+  locked?: boolean;
+};
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
+function getRoleLabel(role: AppRole | null, signedIn: boolean) {
+  if (!signedIn || !role) return "public";
+  if (role === "ADMIN") return "admin";
+  if (role === "TECH") return "staff";
+  return "student";
+}
+
+function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
+  if (!signedIn || !role) {
+    return [
+      { label: "Issues", href: "/issues" },
+      { label: "My Issues", href: "/my-issues", locked: true },
+      { label: "Raise Issue", href: "/login", locked: true },
+    ];
+  }
+
+  if (role === "STUDENT") {
+    return [
+      { label: "Issues", href: "/issues" },
+      { label: "My Issues", href: "/my-issues" },
+      { label: "Raise Issue", href: "/issues/new" },
+    ];
+  }
+
+  if (role === "TECH") {
+    return [
+      { label: "Staff Queue", href: "/tech/assigned" },
+      { label: "All Issues", href: "/issues" },
+    ];
+  }
+
+  return [
+    { label: "Admin Board", href: "/admin/board" },
+    { label: "All Issues", href: "/issues" },
+  ];
 }
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { status } = useSession();
-  const authed = status === "authenticated";
 
-  const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<Role | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    if (!authed) {
-      setRole(null);
-      return;
-    }
-    if (pathname.startsWith("/setup/role")) {
-      setRole(null);
-      return;
-    }
+    setMounted(true);
+    const storedRole = getStoredRole();
+    setRole(storedRole);
+    setSignedIn(!!storedRole);
+  }, [pathname]);
 
-    const r = localStorage.getItem("issuedesk_role");
-    if (r === "STUDENT" || r === "ADMIN" || r === "TECH") setRole(r);
-    else setRole("STUDENT");
-  }, [authed, pathname]);
+  const roleLabel = useMemo(() => getRoleLabel(role, signedIn), [role, signedIn]);
+  const mainLinks = useMemo(() => getMainLinks(role, signedIn), [role, signedIn]);
 
-  const roleLinks: NavItem[] = useMemo(() => {
-    if (role === "ADMIN") {
-      return [
-        { label: "Board", href: "/admin/board", restricted: true },
-        { label: "All Issues", href: "/admin/all", restricted: true },
-        { label: "New notice", href: "/admin/notices/new", restricted: true },
-      ];
-    }
-
-    if (role === "TECH") {
-      return [
-        { label: "Queue", href: "/tech/assigned", restricted: true },
-        { label: "Completed", href: "/tech/completed", restricted: true },
-      ];
-    }
-    if (role === "STUDENT") {
-      return [
-        { label: "Raise Issue", href: "/setup/section", restricted: true, emphasis: true },
-      ];
-    }
-    return [];
-  }, [role]);
-
-  const browseLinks: NavItem[] = [
-    { label: "Issues", href: "/issues" },
-    { label: "My issues", href: "/recent", restricted: true },
-  ];
-
-  const roleLabel = !authed
-    ? "public"
-    : role === "TECH"
-      ? "staff"
-      : role
-        ? role.toLowerCase()
-        : "choose role";
-
-  function redirectToLogin(nextHref: string) {
-    router.push(`/login?next=${encodeURIComponent(nextHref)}`);
+  function handleSignOut() {
+    sessionStorage.removeItem(ROLE_KEY);
+    router.replace("/login");
   }
 
-  function onClickItem(item: NavItem) {
-    if (item.restricted && !authed) {
-      setNotice("Sign in required — redirecting to login…");
-      setOpen(false);
-      window.setTimeout(() => redirectToLogin(item.href), 650);
-      return;
-    }
-
-    router.push(item.href);
-    setOpen(false);
-  }
-
-  const NavBlock = ({ title, items }: { title: string; items: NavItem[] }) => (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)]">
-      <div className="px-4 pt-4 pb-2 text-xs font-extrabold tracking-wide text-[var(--muted)]">
-        {title}
-      </div>
-      <div className="px-2 pb-3">
-        {items.map((i) => {
-          const active = isActive(pathname, i.href);
-          const emph = !!i.emphasis;
-
-          return (
-            <button
-              key={i.href}
-              onClick={() => onClickItem(i)}
-              className={[
-                "w-full text-left px-3 py-2 rounded-xl flex items-center justify-between",
-                "transition border",
-                active
-                  ? "border-[color:rgba(38,198,255,0.55)] bg-[color:rgba(38,198,255,0.16)]"
-                  : emph
-                    ? "border-[color:rgba(0,255,213,0.18)] bg-[color:rgba(38,198,255,0.10)] hover:border-[color:rgba(38,198,255,0.40)]"
-                    : "border-transparent hover:border-[var(--border)] hover:bg-[color:rgba(255,255,255,0.04)]",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "text-sm",
-                  emph ? "font-black text-[color:rgba(180,245,255,0.95)]" : "font-extrabold",
-                ].join(" ")}
-              >
-                {i.label}
-              </span>
-
-              {i.restricted && !authed ? (
-                <span className="text-[10px] font-black text-[var(--muted)]">LOCK</span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  if (!mounted) return null;
 
   return (
-    <>
-      {notice ? (
-        <div className="fixed top-4 left-1/2 z-[60] -translate-x-1/2 px-4">
-          <div className="rounded-2xl border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-100 shadow-lg">
-            {notice}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="fixed top-4 left-4 z-50 md:hidden">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="h-11 w-11 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] flex items-center justify-center"
-          aria-label="Toggle menu"
-        >
-          <div className="flex flex-col gap-1">
-            <span className="block h-[2px] w-5 bg-[var(--text)] opacity-80" />
-            <span className="block h-[2px] w-5 bg-[var(--text)] opacity-80" />
-            <span className="block h-[2px] w-5 bg-[var(--text)] opacity-80" />
-          </div>
-        </button>
+    <aside className="w-72 border-r border-white/10 bg-transparent p-5">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="text-2xl font-semibold text-white">IssueDesk</div>
+        <div className="text-sm font-medium text-white/60">{roleLabel}</div>
       </div>
 
-      <aside className="hidden md:block fixed left-0 top-0 h-full w-[280px] p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <Link href="/" className="text-lg font-black tracking-tight">
-            IssueDesk
-          </Link>
-          <span className="text-xs font-extrabold text-[var(--muted)]">
-            {roleLabel}
-          </span>
-        </div>
-
-        <div className="space-y-4">
-          <NavBlock title="Browse" items={browseLinks} />
-          {roleLinks.length > 0 ? <NavBlock title="Role links" items={roleLinks} /> : null}
-
-          {!authed ? (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4">
-              <div className="text-sm font-extrabold">Actions need sign-in</div>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                To create, vote, comment, or manage, sign in first.
-              </p>
-              <button
-                onClick={() => router.push("/login")}
-                className="mt-3 w-full rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 font-extrabold hover:bg-blue-500/15"
-              >
-                Go to login
-              </button>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4">
-              <div className="text-sm font-extrabold">Account</div>
-              <p className="mt-1 text-sm text-[var(--muted)]">You’re signed in.</p>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="mt-3 w-full rounded-xl border border-[color:rgba(38,198,255,0.35)] bg-[color:rgba(38,198,255,0.10)] px-3 py-2 font-extrabold hover:bg-[color:rgba(38,198,255,0.14)]"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {open ? (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-0 h-full w-[84%] max-w-[320px] p-5">
-            <div className="h-full rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-lg font-black">IssueDesk</div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-extrabold text-[var(--muted)]">
-                    {roleLabel}
-                  </span>
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="rounded-xl border border-[var(--border)] px-3 py-2 font-extrabold hover:bg-white/5"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <NavBlock title="Browse" items={browseLinks} />
-                <NavBlock title="Role links" items={roleLinks} />
-
-                {!authed ? (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4">
-                    <div className="text-sm font-extrabold">Actions need sign-in</div>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      To create, vote, comment, or manage, sign in first.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setOpen(false);
-                        router.push("/login");
-                      }}
-                      className="mt-3 w-full rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 py-2 font-extrabold hover:bg-blue-500/15"
-                    >
-                      Go to login
-                    </button>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-4">
-                    <div className="text-sm font-extrabold">Account</div>
-                    <p className="mt-1 text-sm text-[var(--muted)]">You’re signed in.</p>
-                    <button
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="mt-3 w-full rounded-xl border border-[color:rgba(38,198,255,0.35)] bg-[color:rgba(38,198,255,0.10)] px-3 py-2 font-extrabold hover:bg-[color:rgba(38,198,255,0.14)]"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="space-y-4">
+        <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <div className="mb-3 text-sm font-semibold text-white/70">
+            {role === "TECH" ? "Staff" : role === "ADMIN" ? "Admin" : "Browse"}
           </div>
-        </div>
-      ) : null}
-    </>
+
+          <div className="space-y-2">
+            {mainLinks.map((link) =>
+              link.locked ? (
+                <div
+                  key={link.label}
+                  className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white/40"
+                >
+                  {link.label}
+                </div>
+              ) : (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={`block rounded-2xl border px-4 py-3 text-sm font-medium transition ${pathname === link.href
+                      ? "border-cyan-400/30 bg-cyan-500/10 text-white"
+                      : "border-white/10 bg-white/5 text-white/80 hover:border-cyan-400/25 hover:bg-cyan-500/5"
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <div className="mb-1 text-sm font-semibold text-white/80">Account</div>
+          <div className="mb-4 text-sm text-white/55">
+            {signedIn ? "You're signed in." : "Browse publicly."}
+          </div>
+
+          {signedIn ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500/15"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="block w-full rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-cyan-500/15"
+            >
+              Sign in
+            </Link>
+          )}
+        </section>
+      </div>
+    </aside>
   );
 }

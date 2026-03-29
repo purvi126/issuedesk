@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import { getStoredRole, type AppRole } from "@/lib/role";
 import EmptyState from "@/components/empty-state";
 import KanbanBoard from "@/components/kanban-board";
 import NoticesPopup from "@/components/notices-popup";
@@ -32,6 +32,7 @@ export default function IssuesPage() {
   const [mounted, setMounted] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [role, setRole] = useState<AppRole | null>(null);
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status | "ALL">("ALL");
@@ -41,6 +42,11 @@ export default function IssuesPage() {
   const [creator, setCreator] = useState<string>("ALL");
   const [sort, setSort] = useState<SortMode>("NEWEST");
   const [showNotices, setShowNotices] = useState(false);
+
+  const isStudent = role === "STUDENT";
+  const isStaff = role === "TECH";
+  const isAdmin = role === "ADMIN";
+  const isPrivileged = isStaff || isAdmin;
 
   const notices = [
     {
@@ -59,6 +65,7 @@ export default function IssuesPage() {
 
   useEffect(() => {
     setMounted(true);
+    setRole(getStoredRole());
   }, []);
 
   useEffect(() => {
@@ -67,13 +74,23 @@ export default function IssuesPage() {
   }, [mounted, refreshTick]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !isStudent) return;
 
     const seen = sessionStorage.getItem("issues_notices_seen");
     if (!seen) {
       setShowNotices(true);
     }
-  }, [mounted]);
+  }, [mounted, isStudent]);
+
+  useEffect(() => {
+    function handleWindowFocus() {
+      setIssues(getIssues());
+      setRole(getStoredRole());
+    }
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, []);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -184,15 +201,23 @@ export default function IssuesPage() {
 
   return (
     <>
-      <NoticesPopup open={showNotices} notices={notices} onClose={closeNotices} />
+      {isStudent ? (
+        <NoticesPopup open={showNotices} notices={notices} onClose={closeNotices} />
+      ) : null}
 
       <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Issues</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {isPrivileged ? "All Issues" : "Issues"}
+              </h1>
               <p className="mt-1 text-sm text-white/60">
-                Browse active issues, switch views, or raise a new one.
+                {isStaff
+                  ? "Browse active issues across campus."
+                  : isAdmin
+                    ? "Review active issues across the system."
+                    : "Browse active issues, switch views, or raise a new one."}
               </p>
             </div>
 
@@ -222,22 +247,28 @@ export default function IssuesPage() {
                 </button>
               </div>
 
-              <button
-                onClick={() => router.push("/setup/section")}
-                className="h-12 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                + New issue
-              </button>
+              {isStudent ? (
+                <button
+                  onClick={() => router.push("/setup/section")}
+                  className="h-12 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  + New issue
+                </button>
+              ) : null}
             </div>
           </div>
 
           {activeIssues.length === 0 && recentlyResolved.length === 0 ? (
             <div className="mt-6">
               <EmptyState
-                title="No issues yet"
-                subtitle="Create one to see it appear here."
-                actionLabel="New issue"
-                onAction={() => router.push("/setup/section")}
+                title={isPrivileged ? "No issues found" : "No issues yet"}
+                subtitle={
+                  isPrivileged
+                    ? "There are no active or recently resolved issues right now."
+                    : "Create one to see it appear here."
+                }
+                actionLabel={isStudent ? "New issue" : undefined}
+                onAction={isStudent ? () => router.push("/setup/section") : undefined}
               />
             </div>
           ) : viewFromUrl === "board" ? (
