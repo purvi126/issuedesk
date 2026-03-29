@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
     const sp = useSearchParams();
-    const next = sp.get("next") || "/";
+    const next = sp.get("next") || "/issues";
 
     return (
         <div className="min-h-[calc(100vh-1px)] px-6 py-10 flex items-center justify-center">

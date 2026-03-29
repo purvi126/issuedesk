@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { getStoredRole, type AppRole, ROLE_KEY } from "@/lib/role";
 
 type SidebarLink = {
@@ -31,7 +32,7 @@ function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
     return [
       { label: "Issues", href: "/issues" },
       { label: "My Issues", href: "/my-issues" },
-      { label: "Raise Issue", href: "/issues/new" },
+      { label: "Raise Issue", href: "/new" },
     ];
   }
 
@@ -51,31 +52,33 @@ function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { status } = useSession();
 
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<AppRole | null>(null);
-  const [signedIn, setSignedIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const signedIn = status === "authenticated";
 
   useEffect(() => {
     setMounted(true);
-    const storedRole = getStoredRole();
-    setRole(storedRole);
-    setSignedIn(!!storedRole);
+    setRole(getStoredRole());
   }, [pathname]);
 
   const roleLabel = useMemo(() => getRoleLabel(role, signedIn), [role, signedIn]);
   const mainLinks = useMemo(() => getMainLinks(role, signedIn), [role, signedIn]);
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    setSigningOut(true);
     sessionStorage.removeItem(ROLE_KEY);
-    router.replace("/login");
+    setRole(null);
+    await signOut({ callbackUrl: "/login" });
   }
 
   if (!mounted) return null;
 
   return (
-    <aside className="w-72 border-r border-white/10 bg-transparent p-5">
+    <aside className="w-72 shrink-0 border-r border-white/10 bg-transparent p-5">
       <div className="mb-5 flex items-center justify-between">
         <div className="text-2xl font-semibold text-white">IssueDesk</div>
         <div className="text-sm font-medium text-white/60">{roleLabel}</div>
@@ -100,11 +103,10 @@ export default function AppSidebar() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className={`block rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                    pathname === link.href
+                  className={`block rounded-2xl border px-4 py-3 text-sm font-medium transition ${pathname === link.href
                       ? "border-cyan-400/30 bg-cyan-500/10 text-white"
                       : "border-white/10 bg-white/5 text-white/80 hover:border-cyan-400/25 hover:bg-cyan-500/5"
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -123,9 +125,10 @@ export default function AppSidebar() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500/15"
+              disabled={signingOut}
+              className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500/15 disabled:opacity-60"
             >
-              Sign out
+              {signingOut ? "Signing out..." : "Sign out"}
             </button>
           ) : (
             <Link

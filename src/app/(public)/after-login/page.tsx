@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getStoredRole } from "@/lib/role";
 
 function AfterLoginInner() {
   const router = useRouter();
@@ -10,8 +11,13 @@ function AfterLoginInner() {
   useEffect(() => {
     const next = sp.get("next") || "/issues";
     const safe = next.startsWith("/") ? next : "/issues";
+    const role = getStoredRole();
 
-    sessionStorage.removeItem("issuedesk_role");
+    if (role) {
+      router.replace(safe);
+      return;
+    }
+
     router.replace(`/setup/role?next=${encodeURIComponent(safe)}`);
   }, [sp, router]);
 

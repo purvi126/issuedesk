@@ -20,21 +20,10 @@ export default function SetupRolePage() {
   const [picked, setPicked] = useState<Role | null>(null);
 
   function choose(role: Role) {
-    setPicked(role);
-    sessionStorage.setItem("issuedesk_role", role);
-
-    if (role === "STUDENT") {
-      router.replace("/issues");
-      return;
-    }
-
-    if (next && next.startsWith("/")) {
-      router.replace(next);
-      return;
-    }
-
-    router.replace(dashboardFor(role));
-  }
+  setPicked(role);
+  sessionStorage.setItem("issuedesk_role", role);
+  router.replace(dashboardFor(role));
+}
 
   return (
     <main className="min-h-screen px-6 py-10">

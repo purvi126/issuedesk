@@ -1,6 +1,14 @@
-"use client";
+import AppShell from "@/components/app-shell";
+import PublicShell from "@/components/public-shell";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { getStoredRole, type AppRole, ROLE_KEY } from "@/lib/role";
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AppShell>
+      <PublicShell>{children}</PublicShell>
+    </AppShell>
+  );
+}
