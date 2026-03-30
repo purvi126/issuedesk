@@ -4,95 +4,108 @@ import { getDb } from "@/lib/mongodb";
 
 const COLLECTION = "issues";
 
-// GET /api/issues/[id]
-export async function GET(
-  _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(_: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid issue id" }, { status: 400 });
-    }
-
     const db = await getDb();
-    const issue = await db
-      .collection(COLLECTION)
-      .findOne({ _id: new ObjectId(id) });
+
+    const query = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id as any };
+    const issue = await db.collection(COLLECTION).findOne(query);
 
     if (!issue) {
-      return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Issue not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true, issue }, { status: 200 });
+    return NextResponse.json(
+      {
+        ok: true,
+        issue: {
+          ...issue,
+          _id: issue._id?.toString?.() ?? "",
+          createdAt:
+            issue.createdAt instanceof Date
+              ? issue.createdAt.toISOString()
+              : issue.createdAt,
+        },
+      },
+      { status: 200 }
+    );
   } catch (err: unknown) {
+    console.error("[issue GET] Failed:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[issue GET by id] Failed:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
-// PATCH /api/issues/[id]
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const body = await req.json();
 
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid issue id" }, { status: 400 });
+    const db = await getDb();
+
+    const updateFields: Record<string, unknown> = {};
+
+    if (typeof body.status === "string" && body.status.trim()) {
+      updateFields.status = body.status.trim();
     }
 
-    const body = await req.json();
-    const { status } = body as {
-      status?: "OPEN" | "IN_PROGRESS" | "RESOLVED";
-    };
+    if (typeof body.reviewState === "string" && body.reviewState.trim()) {
+      updateFields.reviewState = body.reviewState.trim();
+    }
 
-    const allowedStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED"];
+    if (typeof body.priority === "string" && body.priority.trim()) {
+      updateFields.priority = body.priority.trim();
+    }
 
-    if (!status || !allowedStatuses.includes(status)) {
+    if (typeof body.title === "string" && body.title.trim()) {
+      updateFields.title = body.title.trim();
+    }
+
+    if (typeof body.description === "string" && body.description.trim()) {
+      updateFields.description = body.description.trim();
+    }
+
+    if (Object.keys(updateFields).length === 0) {
       return NextResponse.json(
-        { error: "Invalid status value" },
+        { ok: false, error: "No valid fields provided for update" },
         { status: 400 }
       );
     }
 
-    const db = await getDb();
-
-    const updateDoc: {
-      status: string;
-      updatedAt: Date;
-      resolvedAt?: Date | null;
-    } = {
-      status,
-      updatedAt: new Date(),
-    };
-
-    if (status === "RESOLVED") {
-      updateDoc.resolvedAt = new Date();
-    } else {
-      updateDoc.resolvedAt = null;
-    }
+    const query = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id as any };
 
     const result = await db.collection(COLLECTION).findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: updateDoc },
+      query,
+      { $set: updateFields },
       { returnDocument: "after" }
     );
 
     if (!result) {
-      return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Issue not found" }, { status: 404 });
     }
 
     return NextResponse.json(
-      { ok: true, issue: result },
+      {
+        ok: true,
+        issue: {
+          ...result,
+          _id: result._id?.toString?.() ?? "",
+          createdAt:
+            result.createdAt instanceof Date
+              ? result.createdAt.toISOString()
+              : result.createdAt,
+        },
+      },
       { status: 200 }
     );
   } catch (err: unknown) {
+    console.error("[issue PATCH] Failed:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[issue PATCH by id] Failed:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
