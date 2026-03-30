@@ -1,0 +1,2093 @@
+
+===== src/app/(app)/setup/location/page.tsx =====
+
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CAMPUS_BUILDINGS, MEN_BLOCKS, WOMEN_BLOCKS } from "@/lib/constants";
+import type { Section, HostelGender } from "@/lib/store";
+
+function LocationPageInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const nextParam = sp.get("next") || "";
+
+  const [mounted, setMounted] = useState(false);
+  const [section, setSection] = useState<Section>("HOSTEL");
+  const [gender, setGender] = useState<HostelGender>("MEN");
+
+  const [block, setBlock] = useState("");
+  const [building, setBuilding] = useState("");
+  const [room, setRoom] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+
+    const storedSection =
+      (localStorage.getItem("issuedesk_section") as Section | null) ?? "HOSTEL";
+    const genderRaw = localStorage.getItem("issuedesk_gender");
+
+    setSection(storedSection);
+    setGender(genderRaw === "WOMEN" ? "WOMEN" : "MEN");
+  }, []);
+
+  const blocks = useMemo(() => {
+    return gender === "WOMEN" ? [...WOMEN_BLOCKS] : [...MEN_BLOCKS];
+  }, [gender]);
+
+  const isHostel = section === "HOSTEL";
+  const canNext =
+    room.trim().length > 0 &&
+    (isHostel ? block.trim().length > 0 : building.trim().length > 0);
+
+  function next() {
+    if (!canNext) return;
+
+    if (isHostel) {
+      localStorage.setItem("issuedesk_hostel_block", block.trim());
+      localStorage.removeItem("issuedesk_campus_building");
+    } else {
+      localStorage.setItem("issuedesk_campus_building", building.trim());
+      localStorage.removeItem("issuedesk_hostel_block");
+    }
+
+    localStorage.setItem("issuedesk_room", room.trim());
+
+    localStorage.setItem(
+      "issuedesk_location_draft",
+      JSON.stringify({
+        section,
+        hostelGender: isHostel ? gender : undefined,
+        hostelBlock: isHostel ? block.trim() : undefined,
+        buildingName: !isHostel ? building.trim() : undefined,
+        roomNumber: room.trim(),
+      })
+    );
+
+    router.push(`/setup/issue${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`);
+  }
+
+  if (!mounted) return null;
+
+  return (
+    <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Location
+        </h1>
+        <p className="mt-2 text-sm text-white/60">
+          {isHostel ? "Select block and room number." : "Select building and room/lab."}
+        </p>
+
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {isHostel ? (
+              <>
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold text-white/80">
+                    Block
+                  </label>
+                  <select
+                    value={block}
+                    onChange={(e) => setBlock(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="" disabled>
+                      -- select --
+                    </option>
+                    {blocks.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold text-white/80">
+                    Room number
+                  </label>
+                  <input
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    placeholder="e.g., 204"
+                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold text-white/80">
+                    Building
+                  </label>
+                  <select
+                    value={building}
+                    onChange={(e) => setBuilding(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="" disabled>
+                      -- select --
+                    </option>
+                    {CAMPUS_BUILDINGS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold text-white/80">
+                    Room / Lab
+                  </label>
+                  <input
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    placeholder="e.g., 312 / Lab 5"
+                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={next}
+            disabled={!canNext}
+            className={[
+              "mt-6 h-11 rounded-xl border px-5 text-sm font-semibold transition",
+              canNext
+                ? "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15"
+                : "cursor-not-allowed border-white/10 bg-white/5 text-white/40",
+            ].join(" ")}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function LocationPage() {
+  return (
+    <Suspense fallback={null}>
+      <LocationPageInner />
+    </Suspense>
+  );
+}
+
+===== src/app/(app)/setup/section/section-page-inner.tsx =====
+
+"use client";
+
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+
+type Section = "HOSTEL" | "CAMPUS";
+
+export default function SectionPageInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const next = sp.get("next") || "";
+
+  const [picked, setPicked] = useState<Section>("HOSTEL");
+
+  function choose(section: Section) {
+    setPicked(section);
+    localStorage.setItem("issuedesk_section", section);
+    localStorage.setItem("issuedesk_domain", section);
+
+    if (section === "HOSTEL") router.push("/setup/gender");
+    else router.push("/setup/location");
+  }
+
+  return (
+    <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Choose section</h1>
+        <p className="mt-2 text-sm text-white/60">Tap one to continue.</p>
+
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+          <div className="grid gap-3 md:grid-cols-2">
+            <ChoiceCard
+              title="Hostel"
+              img="/illus/hostel.png"
+              active={picked === "HOSTEL"}
+              onClick={() => choose("HOSTEL")}
+            />
+            <ChoiceCard
+              title="Campus"
+              img="/illus/campus.png"
+              active={picked === "CAMPUS"}
+              onClick={() => choose("CAMPUS")}
+            />
+          </div>
+
+          {next ? (
+            <div className="mt-4 text-xs text-white/45">
+              After setup, you'll be redirected to: <span className="text-white/70">{next}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ChoiceCard({
+  title,
+  img,
+  active,
+  onClick,
+}: {
+  title: string;
+  img: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-2xl border p-6 text-center transition",
+        active
+          ? "border-blue-400/30 bg-blue-500/10"
+          : "border-white/10 bg-white/5 hover:border-blue-400/25 hover:bg-blue-500/5",
+      ].join(" ")}
+    >
+      <div className="mx-auto mb-3 relative h-40 w-40 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+        <Image src={img} alt={title} fill className="object-contain p-3" />
+      </div>
+      <div className="text-lg font-semibold text-white/90">{title}</div>
+      <div className="mt-1 text-sm text-white/55">Tap to select</div>
+    </button>
+  );
+}
+
+===== src/app/(public)/after-login/page.tsx =====
+
+"use client";
+
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getStoredRole } from "@/lib/role";
+
+function AfterLoginInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  useEffect(() => {
+    const next = sp.get("next") || "/issues";
+    const safe = next.startsWith("/") ? next : "/issues";
+    const role = getStoredRole();
+
+    if (role) {
+      router.replace(safe);
+      return;
+    }
+
+    router.replace(`/setup/role?next=${encodeURIComponent(safe)}`);
+  }, [sp, router]);
+
+  return <div>Redirecting...</div>;
+}
+
+export default function AfterLoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AfterLoginInner />
+    </Suspense>
+  );
+}
+
+===== src/app/(public)/home/page.tsx =====
+
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link";
+
+export default function InsideHomePage() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const { status } = useSession();
+  const authed = status === "authenticated";
+  const next = sp.get("next") || "/recent";
+
+  async function goGoogle() {
+    await signIn("google", {
+      callbackUrl: `/after-login?next=${encodeURIComponent(next)}`,
+    });
+  }
+
+  const demoNotices = [
+    {
+      id: "N-001",
+      title: "Water supply maintenance",
+      body: "Block C will have a scheduled water shutdown from 2:00 PM – 4:00 PM today.",
+      tag: "Maintenance",
+      when: "Today",
+    },
+    {
+      id: "N-002",
+      title: "Internet downtime",
+      body: "Wi-Fi may be unstable near Library due to router replacement.",
+      tag: "Network",
+      when: "This week",
+    },
+  ];
+
+  return (
+    <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
+      <div className="mx-auto grid max-w-6xl items-start gap-8 lg:grid-cols-2">
+        {/* Left: Notices */}
+        <section className="space-y-6">
+          <div className="text-sm font-semibold text-white/60">Home</div>
+
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            IssueDesk{" "}
+            <br></br>
+            <span className="font-semibold text-white/55">campus issue tracker</span>
+          </h1>
+
+          <div className="rounded-3xl border border-[color:rgba(38,198,255,0.28)] bg-[linear-gradient(135deg,rgba(38,198,255,0.08),rgba(0,0,0,0))] p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-white/90">Notices</div>
+                <div className="mt-1 text-xs text-white/55">
+                  Announcements and maintenance alerts.
+                </div>
+              </div>
+              <button
+                onClick={() => router.push("/notices")}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 hover:border-[color:rgba(38,198,255,0.25)] hover:bg-blue-500/5"
+              >
+                View all
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {demoNotices.map((n) => (
+                <div
+                  key={n.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">{n.title}</div>
+                      <div className="mt-1 text-xs text-white/55">
+                        {n.tag} • {n.when}
+                      </div>
+                    </div>
+                    <div className="text-xs font-semibold text-[color:rgba(38,198,255,0.9)]">
+                      {n.id}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm text-white/60 leading-6">{n.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </section>
+
+        {/* Right: Account / Sign in */}
+        <aside className="mx-auto w-full max-w-xl">
+          <div className="rounded-3xl border border-[color:rgba(38,198,255,0.35)] bg-[linear-gradient(135deg,rgba(38,198,255,0.10),rgba(0,0,0,0))] p-6 shadow-sm backdrop-blur">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white/90">
+                  {authed ? "Account" : "Sign in"}
+                </h2>
+                <p className="mt-1 text-sm text-white/60">
+                  {authed ? "You are signed in." : "Continue to your dashboard."}
+                </p>
+              </div>
+              <div className="h-10 w-10 rounded-2xl border border-[color:rgba(38,198,255,0.35)] bg-[color:rgba(38,198,255,0.10)] shadow-[0_0_40px_rgba(38,198,255,0.18)]" />
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {authed ? (
+                <>
+                  <Link
+                    href="/after-login"
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(0,255,213,0.22)] bg-[linear-gradient(135deg,rgba(0,255,213,0.10),rgba(38,198,255,0.10))] px-5 py-4 text-left transition hover:border-[color:rgba(0,255,213,0.35)]"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Dashboard</div>
+                      <div className="mt-1 text-xs text-white/55">See my issues</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition group-hover:border-[color:rgba(38,198,255,0.35)] group-hover:bg-blue-500/10">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </Link>
+
+                  <button
+                    onClick={() => router.push("/setup/section")}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(38,198,255,0.25)] bg-blue-500/10 px-5 py-4 text-left transition hover:bg-blue-500/15"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Raise issue</div>
+                      <div className="mt-1 text-xs text-white/55">Hostel or campus</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition group-hover:border-[color:rgba(38,198,255,0.35)] group-hover:bg-blue-500/10">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition hover:border-[color:rgba(38,198,255,0.25)] hover:bg-blue-500/5"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Sign out</div>
+                      <div className="mt-1 text-xs text-white/55">End this session</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/60">⟶</span>
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={goGoogle}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(38,198,255,0.35)] bg-blue-500/12 px-5 py-4 text-left transition hover:bg-blue-500/16"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Continue with Google</div>
+                      <div className="mt-1 text-xs text-white/55">Recommended</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition group-hover:border-[color:rgba(38,198,255,0.35)] group-hover:bg-blue-500/10">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/issues")}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition hover:border-[color:rgba(38,198,255,0.25)] hover:bg-blue-500/5"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Continue browsing</div>
+                      <div className="mt-1 text-xs text-white/55">View issues and notices</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+===== src/app/(public)/issues/page.tsx =====
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getStoredRole, type AppRole } from "@/lib/role";
+import EmptyState from "@/components/empty-state";
+import KanbanBoard from "@/components/kanban-board";
+import NoticesPopup from "@/components/notices-popup";
+import type { Status, Priority, Section } from "@/lib/store";
+import { clearExpiredNotices, getActiveNotices, type Notice } from "@/lib/notices";
+
+type ViewMode = "list" | "board";
+type SortMode = "NEWEST" | "OLDEST" | "TOP";
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  section?: string;
+  status?: string;
+  createdByEmail?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  locationText?: string;
+  attachmentName?: string;
+  createdAt?: string;
+};
+
+type PageIssue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: Priority;
+  section: Section;
+  status: Status;
+  createdById: string;
+  locationText: string;
+  attachmentDataUrl?: string;
+  createdAt?: number;
+  comments: unknown[];
+};
+
+function statusLabel(s: Status) {
+  if (s === "IN_PROGRESS") return "In progress";
+  if (s === "RESOLVED") return "Resolved";
+  return "Open";
+}
+
+function creatorLabel(i: PageIssue) {
+  const c = (i.createdById ?? "").trim();
+  return c.length ? c : "Unknown";
+}
+
+function getScore(i: PageIssue) {
+  return Array.isArray(i.comments) ? i.comments.length : 0;
+}
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Block ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  return "";
+}
+
+function toPageIssue(issue: ApiIssue): PageIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : Date.now();
+
+  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as Priority;
+  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as Section;
+  const status = (issue.status?.trim().toUpperCase() || "OPEN") as Status;
+
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    description: issue.description?.trim() || "",
+    category: issue.category?.trim() || "General",
+    priority,
+    section,
+    status,
+    createdById: issue.createdByEmail?.trim() || "",
+    locationText: buildLocationText(issue),
+    attachmentDataUrl: issue.attachmentName?.trim()
+      ? issue.attachmentName.trim()
+      : "",
+    createdAt,
+    comments: [],
+  };
+}
+
+export default function IssuesPage() {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  const viewFromUrl: ViewMode = sp.get("view") === "board" ? "board" : "list";
+
+  const [mounted, setMounted] = useState(false);
+  const [issues, setIssues] = useState<PageIssue[]>([]);
+  const [role, setRole] = useState<AppRole | null>(null);
+
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<Status | "ALL">("ALL");
+  const [priority, setPriority] = useState<Priority | "ALL">("ALL");
+  const [section, setSection] = useState<Section | "ALL">("ALL");
+  const [category, setCategory] = useState<string>("ALL");
+  const [creator, setCreator] = useState<string>("ALL");
+  const [sort, setSort] = useState<SortMode>("NEWEST");
+  const [showNotices, setShowNotices] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
+
+  const isStudent = role === "STUDENT";
+  const isStaff = role === "TECH";
+  const isAdmin = role === "ADMIN";
+  const isPrivileged = isStaff || isAdmin;
+
+  useEffect(() => {
+    setMounted(true);
+    setRole(getStoredRole());
+    clearExpiredNotices();
+    setNotices(getActiveNotices());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    let ignore = false;
+
+    async function loadIssues() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load issues");
+        }
+
+        const mapped = Array.isArray(data.issues)
+          ? data.issues.map(toPageIssue)
+          : [];
+
+        if (!ignore) {
+          setIssues(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to load issues:", error);
+        if (!ignore) {
+          setIssues([]);
+        }
+      }
+    }
+
+    loadIssues();
+
+    return () => {
+      ignore = true;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !isStudent) return;
+
+    const active = getActiveNotices();
+    setNotices(active);
+
+    if (active.length === 0) {
+      setShowNotices(false);
+      return;
+    }
+
+    const seen = sessionStorage.getItem("issues_notices_seen");
+    if (!seen) {
+      setShowNotices(true);
+    }
+  }, [mounted, isStudent]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    async function handleWindowFocus() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok) {
+          const mapped = Array.isArray(data.issues)
+            ? data.issues.map(toPageIssue)
+            : [];
+          setIssues(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to refresh issues:", error);
+      }
+
+      setRole(getStoredRole());
+      clearExpiredNotices();
+      setNotices(getActiveNotices());
+    }
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, [mounted]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of issues) {
+      if (i.category) set.add(i.category);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [issues]);
+
+  const creators = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of issues) {
+      const c = (i.createdById ?? "").trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [issues]);
+
+  function go(nextView: ViewMode) {
+    router.push(nextView === "board" ? "/issues?view=board" : "/issues");
+  }
+
+  function closeNotices() {
+    sessionStorage.setItem("issues_notices_seen", "true");
+    setShowNotices(false);
+  }
+
+  const oneWeekAgo = useMemo(() => Date.now() - 7 * 24 * 60 * 60 * 1000, []);
+
+  const activeIssues = useMemo(() => {
+    return issues.filter((i) => i.status === "OPEN" || i.status === "IN_PROGRESS");
+  }, [issues]);
+
+  const recentlyResolved = useMemo(() => {
+    return issues
+      .filter(
+        (i) =>
+          i.status === "RESOLVED" &&
+          typeof i.createdAt === "number" &&
+          i.createdAt >= oneWeekAgo
+      )
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      .slice(0, 5);
+  }, [issues, oneWeekAgo]);
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+
+    const hitsQuery = (i: PageIssue) => {
+      if (!query) return true;
+      const hay =
+        `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
+      return hay.includes(query);
+    };
+
+    const base = activeIssues
+      .filter((i) => (status === "ALL" ? true : i.status === status))
+      .filter((i) => (priority === "ALL" ? true : i.priority === priority))
+      .filter((i) => (section === "ALL" ? true : i.section === section))
+      .filter((i) => (category === "ALL" ? true : i.category === category))
+      .filter((i) => (creator === "ALL" ? true : creatorLabel(i) === creator))
+      .filter(hitsQuery);
+
+    const arr = base.slice();
+
+    if (sort === "TOP") {
+      arr.sort((a, b) => {
+        const sa = getScore(a);
+        const sb = getScore(b);
+        if (sb !== sa) return sb - sa;
+        return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+      });
+      return arr;
+    }
+
+    arr.sort((a, b) => {
+      const ta = typeof a.createdAt === "number" ? a.createdAt : 0;
+      const tb = typeof b.createdAt === "number" ? b.createdAt : 0;
+      return sort === "NEWEST" ? tb - ta : ta - tb;
+    });
+
+    return arr;
+  }, [activeIssues, q, status, priority, section, category, creator, sort]);
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/issues", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to refresh issues");
+      }
+
+      const mapped = Array.isArray(data.issues)
+        ? data.issues.map(toPageIssue)
+        : [];
+
+      setIssues(mapped);
+    } catch (error) {
+      console.error("Failed to refresh issues:", error);
+      setIssues([]);
+    }
+  }
+
+  function clearFilters() {
+    setQ("");
+    setStatus("ALL");
+    setPriority("ALL");
+    setSection("ALL");
+    setCategory("ALL");
+    setCreator("ALL");
+    setSort("NEWEST");
+  }
+
+  if (!mounted) {
+    return (
+      <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-sm text-white/60">Loading issues...</div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      {isStudent && notices.length > 0 ? (
+        <NoticesPopup open={showNotices} notices={notices} onClose={closeNotices} />
+      ) : null}
+
+      <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {isPrivileged ? "All Issues" : "Issues"}
+              </h1>
+              <p className="mt-1 text-sm text-white/60">
+                {isStaff
+                  ? "Browse active issues across campus."
+                  : isAdmin
+                    ? "Review active issues across the system."
+                    : "Browse active issues, switch views, or raise a new one."}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex h-12 rounded-xl border border-blue-400/25 bg-white/[0.04] p-1 shadow-sm">
+                <button
+                  onClick={() => go("list")}
+                  className={[
+                    "h-10 rounded-lg px-5 text-sm font-semibold transition",
+                    viewFromUrl === "list"
+                      ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                      : "text-white/65 hover:bg-white/5 hover:text-white",
+                  ].join(" ")}
+                >
+                  List
+                </button>
+                <button
+                  onClick={() => go("board")}
+                  className={[
+                    "h-10 rounded-lg px-5 text-sm font-semibold transition",
+                    viewFromUrl === "board"
+                      ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                      : "text-white/65 hover:bg-white/5 hover:text-white",
+                  ].join(" ")}
+                >
+                  Board
+                </button>
+              </div>
+
+              {isStudent ? (
+                <button
+                  onClick={() => router.push("/setup/section")}
+                  className="h-12 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  + New issue
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {activeIssues.length === 0 && recentlyResolved.length === 0 ? (
+            <div className="mt-6">
+              <EmptyState
+                title={isPrivileged ? "No issues found" : "No issues yet"}
+                subtitle={
+                  isPrivileged
+                    ? "There are no active or recently resolved issues right now."
+                    : "Create one to see it appear here."
+                }
+                actionLabel={isStudent ? "New issue" : undefined}
+                onAction={isStudent ? () => router.push("/setup/section") : undefined}
+              />
+            </div>
+          ) : viewFromUrl === "board" ? (
+            <>
+              <div className="mt-6">
+                <KanbanBoard issues={filtered as never} />
+              </div>
+
+              {recentlyResolved.length > 0 ? (
+                <div className="mt-8">
+                  <div className="mb-3">
+                    <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
+                    <p className="mt-1 text-sm text-white/55">Resolved in the last 7 days.</p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {recentlyResolved.map((i) => (
+                      <button
+                        key={`resolved-${i.id}`}
+                        onClick={() => router.push(`/issues/${i.id}`)}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-base font-semibold text-white/90">
+                              {i.title || "(Untitled)"}
+                            </div>
+                            <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
+                            <div className="mt-2 text-xs text-white/55">
+                              {i.section} • {i.category} • by{" "}
+                              <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right text-xs text-emerald-300">
+                            Resolved
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <div className="grid gap-4">
+                  <div className="grid gap-3 lg:grid-cols-6">
+                    <div className="lg:col-span-2">
+                      <div className="mb-2 text-xs font-semibold text-white/60">Search</div>
+                      <input
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder="Search title, location, creator..."
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Priority</div>
+                      <select
+                        value={priority}
+                        onChange={(e) => setPriority(e.target.value as Priority | "ALL")}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="ALL">All</option>
+                        <option value="LOW">LOW</option>
+                        <option value="MED">MED</option>
+                        <option value="HIGH">HIGH</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Section</div>
+                      <select
+                        value={section}
+                        onChange={(e) => setSection(e.target.value as Section | "ALL")}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="ALL">All</option>
+                        <option value="HOSTEL">HOSTEL</option>
+                        <option value="CAMPUS">CAMPUS</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Status</div>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as Status | "ALL")}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="ALL">All</option>
+                        <option value="OPEN">Open</option>
+                        <option value="IN_PROGRESS">In progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Sort</div>
+                      <select
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as SortMode)}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="NEWEST">Newest</option>
+                        <option value="OLDEST">Oldest</option>
+                        <option value="TOP">Top (upvotes)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 lg:grid-cols-3">
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Category</div>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="ALL">All</option>
+                        {categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs font-semibold text-white/60">Created by</div>
+                      <select
+                        value={creator}
+                        onChange={(e) => setCreator(e.target.value)}
+                        className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="ALL">All</option>
+                        {creators.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                        <option value="Unknown">Unknown</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-end justify-end gap-2">
+                      <button
+                        onClick={clearFilters}
+                        className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={refresh}
+                        className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-white/55">
+                    Showing <span className="font-semibold text-white/80">{filtered.length}</span> of{" "}
+                    <span className="font-semibold text-white/80">{activeIssues.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {filtered.length === 0 ? (
+                  <EmptyState title="No matches" subtitle="Try adjusting filters or search." />
+                ) : (
+                  <div className="grid gap-3">
+                    {filtered.map((i) => (
+                      <button
+                        key={i.id}
+                        onClick={() => router.push(`/issues/${i.id}`)}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-base font-semibold text-white/90">
+                              {i.title || "(Untitled)"}
+                            </div>
+                            <div className="mt-1 text-sm text-white/60">
+                              {i.locationText || "Location not provided"}
+                            </div>
+                            <div className="mt-2 text-xs text-white/55">
+                              {i.section} • {i.category} • by{" "}
+                              <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
+                              {i.attachmentDataUrl ? " • Attachment" : ""}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right text-xs text-white/60">
+                            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
+                              {getScore(i)}
+                            </div>
+                            <div className="mt-2">
+                              {i.priority} • {statusLabel(i.status)}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {recentlyResolved.length > 0 ? (
+                <div className="mt-8">
+                  <div className="mb-3">
+                    <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
+                    <p className="mt-1 text-sm text-white/55">Resolved in the last 7 days.</p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {recentlyResolved.map((i) => (
+                      <button
+                        key={`resolved-${i.id}`}
+                        onClick={() => router.push(`/issues/${i.id}`)}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-base font-semibold text-white/90">
+                              {i.title || "(Untitled)"}
+                            </div>
+                            <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
+                            <div className="mt-2 text-xs text-white/55">
+                              {i.section} • {i.category} • by{" "}
+                              <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right text-xs text-emerald-300">
+                            Resolved
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}
+
+===== src/app/(public)/login/page.tsx =====
+
+"use client";
+
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+
+export default function LoginPage() {
+    const sp = useSearchParams();
+    const next = sp.get("next") || "/issues";
+
+    return (
+        <div className="min-h-[calc(100vh-1px)] px-6 py-10 flex items-center justify-center">
+            <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10 items-center">
+                {/* Left */}
+                <div>
+
+                    <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white/90">
+                        IssueDesk{" "}
+                        <br></br><span className="font-semibold text-white/55">campus issue tracker</span>
+                    </h1>
+
+                    <p className="mt-3 max-w-xl text-[15px] leading-7 text-[var(--muted)]">
+                        View all issues publicly. Sign in to create issues, vote, comment, and access role dashboards.
+                    </p>
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                        <Link
+                            href="/issues"
+                            className="rounded-2xl border border-[var(--border)] bg-black/20 px-4 py-3 text-sm font-extrabold hover:border-[color:rgba(80,200,255,0.40)] hover:bg-[color:rgba(80,200,255,0.06)] transition"
+                        >
+                            Browse public issues
+                        </Link>
+
+                        <Link
+                            href="/"
+                            className="rounded-2xl border border-[var(--border)] bg-black/10 px-4 py-3 text-sm font-extrabold hover:bg-black/20 transition"
+                        >
+                            Back to home
+                        </Link>
+                    </div>
+
+                    <div className="mt-8 text-xs font-bold text-[var(--muted)]">
+                        Tip: Restricted pages will send you here automatically.
+                    </div>
+                </div>
+
+                {/* Right card */}
+                <div className="rounded-3xl border border-[color:rgba(80,200,255,0.40)] bg-[var(--card)] shadow-[var(--shadow)] overflow-hidden">
+                    {/* header strip */}
+                    <div className="px-6 pt-6 pb-4 bg-[linear-gradient(135deg,rgba(80,200,255,0.20),rgba(0,0,0,0))] border-b border-[color:rgba(80,200,255,0.18)]">
+                        <div className="flex items-start justify-between gap-6">
+                            <div>
+                                <div className="text-lg font-black">Sign in</div>
+                                <div className="mt-1 text-sm text-[var(--muted)]">Continue to your dashboard.</div>
+                            </div>
+                            <div className="h-10 w-10 rounded-2xl border border-[color:rgba(80,200,255,0.35)] bg-[color:rgba(80,200,255,0.12)] shadow-[0_0_30px_rgba(80,200,255,0.25)]" />
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        {/* Primary action */}
+                        <button
+                            onClick={() => signIn("google", { callbackUrl: `/after-login?next=${encodeURIComponent(next)}`, })}
+                            className="w-full rounded-2xl border border-[color:rgba(80,200,255,0.75)]
+                         bg-[linear-gradient(135deg,rgba(80,200,255,0.28),rgba(80,200,255,0.10))]
+                         px-4 py-4 text-left shadow-[0_18px_60px_rgba(80,200,255,0.12)]
+                         hover:bg-[linear-gradient(135deg,rgba(80,200,255,0.34),rgba(80,200,255,0.12))]
+                         transition"
+                        >
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <div className="text-sm font-black">Continue with Google</div>
+                                    <div className="mt-1 text-xs font-bold text-[var(--muted)]">Recommended</div>
+                                </div>
+
+                                <div
+                                    className="h-10 w-10 rounded-2xl border border-[color:rgba(80,200,255,0.55)]
+                             bg-[color:rgba(0,0,0,0.25)] flex items-center justify-center
+                             text-lg font-black shadow-[0_0_24px_rgba(80,200,255,0.18)]"
+                                >
+                                    →
+                                </div>
+                            </div>
+                        </button>
+
+                        {/* Secondary action */}
+                        <Link
+                            href="/issues"
+                            className="mt-4 block w-full rounded-2xl border border-[var(--border)] bg-black/20 px-4 py-3
+                         text-sm font-extrabold hover:border-[color:rgba(80,200,255,0.40)]
+                         hover:bg-[color:rgba(80,200,255,0.06)] transition"
+                        >
+                            All issues (public)
+                        </Link>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+===== src/app/(public)/notices/page.tsx =====
+
+"use client";
+
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react";
+
+export default function NoticesPage() {
+  const sp = useSearchParams();
+  const next = sp.get("next") || "/notices";
+
+  const { status } = useSession();
+  const authed = status === "authenticated";
+
+  const demo = [
+    {
+      id: "N-001",
+      title: "Water supply maintenance",
+      body: "Block C will have a scheduled water shutdown from 2:00 PM – 4:00 PM today.",
+      tag: "Maintenance",
+      when: "Today",
+    },
+    {
+      id: "N-002",
+      title: "Internet downtime",
+      body: "Wi-Fi may be unstable near Library due to router replacement.",
+      tag: "Network",
+      when: "This week",
+    },
+  ];
+
+  async function goGoogle() {
+    await signIn("google", {
+      callbackUrl: `/after-login?next=${encodeURIComponent(next)}`,
+    });
+  }
+
+  return (
+    <div className="px-6 py-10">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Notices</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Announcements and maintenance alerts. Public viewing is open.
+            </p>
+          </div>
+
+          <div className="flex gap-3 flex-wrap">
+            <Link
+              href="/issues"
+              className="rounded-2xl border border-[var(--border)] bg-black/20 px-4 py-2 text-sm font-extrabold hover:border-[color:rgba(38,198,255,0.35)]"
+            >
+              All issues
+            </Link>
+
+            {authed ? (
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="rounded-2xl border border-[color:rgba(38,198,255,0.35)] bg-[color:rgba(38,198,255,0.10)] px-4 py-2 text-sm font-extrabold hover:bg-[color:rgba(38,198,255,0.14)]"
+              >
+                Sign out
+              </button>
+            ) : (
+              <button
+                onClick={goGoogle}
+                className="rounded-2xl border border-[color:rgba(38,198,255,0.55)] bg-[color:rgba(38,198,255,0.18)] px-4 py-2 text-sm font-extrabold"
+              >
+                Continue with Google
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3">
+          {demo.map((n) => (
+            <div
+              key={n.id}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-black">{n.title}</div>
+                  <div className="mt-1 text-xs font-bold text-[var(--muted)]">
+                    {n.tag} • {n.when}
+                  </div>
+                </div>
+                <div className="text-xs font-black text-[color:rgba(38,198,255,0.9)]">
+                  {n.id}
+                </div>
+              </div>
+
+              <p className="mt-3 text-sm text-[var(--muted)] leading-6">{n.body}</p>
+            </div>
+          ))}
+
+          {demo.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4 text-sm text-[var(--muted)] font-bold">
+              No notices right now.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-8 text-xs font-bold text-[var(--muted)]">
+          Tip: Admins will later create notices from their dashboard.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== src/app/(public)/page.tsx =====
+
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link";
+
+export default function PublicLandingPage() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const { status } = useSession();
+  const authed = status === "authenticated";
+
+  const next = sp.get("next") || "/home";
+
+  async function goGoogle() {
+    await signIn("google", {
+      callbackUrl: `/after-login?next=${encodeURIComponent(next)}`,
+    });
+  }
+
+  return (
+    <main className="min-h-[calc(100vh-1px)] px-6 py-10 flex items-center justify-center">
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10 items-start">
+        {/* Left */}
+        <section>
+          <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-wide text-white/55">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-[color:rgba(38,198,255,0.95)] shadow-[0_0_28px_rgba(38,198,255,0.55)]" />
+            <span>IssueDesk</span>
+          </div>
+
+          <h1 className="mt-5 text-5xl sm:text-6xl font-semibold tracking-tight text-white">
+            IssueDesk{" "}
+            <br></br>
+            <span className="font-semibold text-white/55">campus issue tracker</span>
+          </h1>
+
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/65">
+            Raise issues, track progress, and get closure — with public browsing and
+            sign-in required for actions like creating, voting, and commenting.
+          </p>
+
+          {/* 4 rectangles */}
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <FeatureCard title="Track every issue" body="Clear status, timeline, and history — no lost complaints." />
+            <FeatureCard title="Upvotes & sorting" body="Bring urgent issues to the top with sorting by popularity." />
+            <FeatureCard title="Role dashboards" body="Students, Staff, Admin — each sees the right workspace." />
+            <FeatureCard title="Controlled actions" body="Public viewing is open. Creating and voting require sign-in." />
+          </div>
+
+
+        </section>
+
+        {/* Right card */}
+        <aside className="w-full">
+          <div className="rounded-3xl border border-[color:rgba(38,198,255,0.35)] bg-[linear-gradient(135deg,rgba(38,198,255,0.10),rgba(0,0,0,0))] p-6 shadow-sm backdrop-blur">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <div className="text-lg font-black text-white/90">
+                  {authed ? "Account" : "Sign in"}
+                </div>
+                <div className="mt-1 text-sm text-white/60">
+                  {authed ? "You are signed in." : "Continue to your dashboard."}
+                </div>
+              </div>
+              <div className="h-10 w-10 rounded-2xl border border-[color:rgba(38,198,255,0.35)] bg-[color:rgba(38,198,255,0.10)] shadow-[0_0_40px_rgba(38,198,255,0.18)]" />
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {authed ? (
+                <>
+                  <Link
+                    href="/after-login"
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(0,255,213,0.22)] bg-[linear-gradient(135deg,rgba(0,255,213,0.10),rgba(38,198,255,0.10))] px-5 py-4 text-left transition hover:border-[color:rgba(0,255,213,0.35)]"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Dashboard</div>
+                      <div className="mt-1 text-xs text-white/55">See my issues</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition group-hover:border-[color:rgba(38,198,255,0.35)] group-hover:bg-blue-500/10">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </Link>
+
+                  <button
+                    onClick={() => router.push("/setup/section")}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(38,198,255,0.25)] bg-blue-500/10 px-5 py-4 text-left transition hover:bg-blue-500/15"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Raise issue</div>
+                      <div className="mt-1 text-xs text-white/55">Hostel or campus</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition hover:border-[color:rgba(38,198,255,0.25)] hover:bg-blue-500/5"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Sign out</div>
+                      <div className="mt-1 text-xs text-white/55">End this session</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/60">⟶</span>
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={goGoogle}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-[color:rgba(38,198,255,0.55)] bg-[color:rgba(38,198,255,0.18)] px-5 py-4 text-left transition hover:bg-[color:rgba(38,198,255,0.22)]"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Sign in with Google</div>
+                      <div className="mt-1 text-xs text-white/55">Recommended</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/issues")}
+                    className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition hover:border-[color:rgba(38,198,255,0.25)] hover:bg-blue-500/5"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white/90">Browse publicly</div>
+                      <div className="mt-1 text-xs text-white/55">View issues and notices</div>
+                    </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <span className="text-white/80">→</span>
+                    </div>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function FeatureCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-[color:rgba(38,198,255,0.14)] bg-[color:rgba(255,255,255,0.02)] p-4">
+      <div className="text-sm font-semibold text-white/85">{title}</div>
+      <div className="mt-1 text-sm text-white/60">{body}</div>
+    </div>
+  );
+}
+
+===== src/app/(public)/recent/page.tsx =====
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import EmptyState from "@/components/empty-state";
+import KanbanBoard from "@/components/kanban-board";
+import type { Status, Priority, Section } from "@/lib/store";
+
+type ViewMode = "board" | "list";
+type SortMode = "NEWEST" | "OLDEST" | "TOP";
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  section?: string;
+  status?: string;
+  createdByEmail?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  locationText?: string;
+  attachmentName?: string;
+  createdAt?: string;
+};
+
+type RecentIssue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: Priority;
+  section: Section;
+  status: Status;
+  createdById: string;
+  locationText: string;
+  attachmentDataUrl?: string;
+  createdAt?: number;
+  comments: unknown[];
+};
+
+function statusLabel(s: Status) {
+  if (s === "IN_PROGRESS") return "In progress";
+  if (s === "RESOLVED") return "Resolved";
+  return "Open";
+}
+
+function creatorLabel(i: RecentIssue) {
+  const c = (i.createdById ?? "").trim();
+  return c.length > 0 ? c : "Unknown";
+}
+
+function getScore(i: RecentIssue) {
+  const comments = Array.isArray(i.comments) ? i.comments.length : 0;
+  return comments;
+}
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Block ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  return "";
+}
+
+function toUiIssue(issue: ApiIssue): RecentIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : Date.now();
+
+  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as Priority;
+  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as Section;
+  const status = (issue.status?.trim().toUpperCase() || "OPEN") as Status;
+
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    description: issue.description?.trim() || "",
+    category: issue.category?.trim() || "General",
+    priority,
+    section,
+    status,
+    createdById: issue.createdByEmail?.trim() || "",
+    locationText: buildLocationText(issue),
+    attachmentDataUrl: issue.attachmentName?.trim()
+      ? issue.attachmentName.trim()
+      : "",
+    createdAt,
+    comments: [],
+  };
+}
+
+export default function AllIssuesPage() {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  const [mounted, setMounted] = useState(false);
+  const [view, setView] = useState<ViewMode>("list");
+  const [issues, setIssues] = useState<RecentIssue[]>([]);
+
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<Status | "ALL">("ALL");
+  const [priority, setPriority] = useState<Priority | "ALL">("ALL");
+  const [section, setSection] = useState<Section | "ALL">("ALL");
+  const [category, setCategory] = useState<string>("ALL");
+  const [creator, setCreator] = useState<string>("ALL");
+  const [sort, setSort] = useState<SortMode>("NEWEST");
+
+  useEffect(() => {
+    setMounted(true);
+    setView(sp.get("view") === "board" ? "board" : "list");
+  }, [sp]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    let ignore = false;
+
+    async function loadIssues() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load issues");
+        }
+
+        const mapped = Array.isArray(data.issues)
+          ? data.issues.map(toUiIssue)
+          : [];
+
+        if (!ignore) {
+          setIssues(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to load issues:", error);
+        if (!ignore) {
+          setIssues([]);
+        }
+      }
+    }
+
+    loadIssues();
+
+    const onFocus = () => {
+      loadIssues();
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      ignore = true;
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [mounted]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of issues) {
+      if (i.category) set.add(i.category);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [issues]);
+
+  const creators = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of issues) {
+      const c = (i.createdById ?? "").trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [issues]);
+
+  function go(nextView: ViewMode) {
+    setView(nextView);
+    router.push(nextView === "board" ? "/issues?view=board" : "/issues");
+  }
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+
+    const hitsQuery = (i: RecentIssue) => {
+      if (!query) return true;
+      const hay =
+        `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
+      return hay.includes(query);
+    };
+
+    const base = issues
+      .filter((i) => (status === "ALL" ? true : i.status === status))
+      .filter((i) => (priority === "ALL" ? true : i.priority === priority))
+      .filter((i) => (section === "ALL" ? true : i.section === section))
+      .filter((i) => (category === "ALL" ? true : i.category === category))
+      .filter((i) => (creator === "ALL" ? true : creatorLabel(i) === creator))
+      .filter(hitsQuery);
+
+    const arr = base.slice();
+
+    if (sort === "TOP") {
+      arr.sort((a, b) => {
+        const sa = getScore(a);
+        const sb = getScore(b);
+        if (sb !== sa) return sb - sa;
+        return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+      });
+      return arr;
+    }
+
+    arr.sort((a, b) => {
+      const ta = typeof a.createdAt === "number" ? a.createdAt : 0;
+      const tb = typeof b.createdAt === "number" ? b.createdAt : 0;
+      return sort === "NEWEST" ? tb - ta : ta - tb;
+    });
+
+    return arr;
+  }, [issues, q, status, priority, section, category, creator, sort]);
+
+  function clearFilters() {
+    setQ("");
+    setStatus("ALL");
+    setPriority("ALL");
+    setSection("ALL");
+    setCategory("ALL");
+    setCreator("ALL");
+    setSort("NEWEST");
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch("/api/issues", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to refresh issues");
+      }
+
+      const mapped = Array.isArray(data.issues)
+        ? data.issues.map(toUiIssue)
+        : [];
+
+      setIssues(mapped);
+    } catch (error) {
+      console.error("Failed to refresh issues:", error);
+      setIssues([]);
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
+          Loading recent issues...
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">All issues</h1>
+            <p className="mt-1 text-sm text-white/60">
+              Filter and sort like a product catalog. Board and List views.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex h-10 rounded-xl border border-white/10 bg-white/5 p-1">
+              <button
+                onClick={() => go("list")}
+                className={[
+                  "h-8 rounded-lg px-3 text-sm font-semibold",
+                  view === "list"
+                    ? "border border-blue-400/30 bg-blue-500/15 text-blue-200"
+                    : "text-white/70 hover:text-white",
+                ].join(" ")}
+              >
+                List
+              </button>
+              <button
+                onClick={() => go("board")}
+                className={[
+                  "h-8 rounded-lg px-3 text-sm font-semibold",
+                  view === "board"
+                    ? "border border-blue-400/30 bg-blue-500/15 text-blue-200"
+                    : "text-white/70 hover:text-white",
+                ].join(" ")}
+              >
+                Board
+              </button>
+            </div>
+
+            <button
+              onClick={() => router.push("/setup/section")}
+              className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+            >
+              + New issue
+            </button>
+          </div>
+        </div>
+
+        {issues.length === 0 ? (
+          <div className="mt-6">
+            <EmptyState
+              title="No issues yet"
+              subtitle="Create one to see it appear here."
+              actionLabel="New issue"
+              onAction={() => router.push("/setup/section")}
+            />
+          </div>
+        ) : view === "board" ? (
+          <div className="mt-6">
+            <KanbanBoard issues={filtered as never} />
+          </div>
+        ) : (
+          <>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="grid gap-4">
+                <div className="grid gap-3 lg:grid-cols-6">
+                  <div className="lg:col-span-2">
+                    <div className="mb-2 text-xs font-semibold text-white/60">Search</div>
+                    <input
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Search title, location, creator…"
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Priority</div>
+                    <select
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value as Priority | "ALL")}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ALL">All</option>
+                      <option value="LOW">LOW</option>
+                      <option value="MED">MED</option>
+                      <option value="HIGH">HIGH</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Section</div>
+                    <select
+                      value={section}
+                      onChange={(e) => setSection(e.target.value as Section | "ALL")}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ALL">All</option>
+                      <option value="HOSTEL">HOSTEL</option>
+                      <option value="CAMPUS">CAMPUS</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Status</div>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as Status | "ALL")}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ALL">All</option>
+                      <option value="OPEN">Open</option>
+                      <option value="IN_PROGRESS">In progress</option>
+                      <option value="RESOLVED">Resolved</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Sort</div>
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value as SortMode)}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="NEWEST">Newest</option>
+                      <option value="OLDEST">Oldest</option>
+                      <option value="TOP">Top (upvotes)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 lg:grid-cols-3">
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Category</div>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ALL">All</option>
+                      {categories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-xs font-semibold text-white/60">Created by</div>
+                    <select
+                      value={creator}
+                      onChange={(e) => setCreator(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ALL">All</option>
+                      {creators.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                      <option value="Unknown">Unknown</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-end justify-end gap-2">
+                    <button
+                      onClick={clearFilters}
+                      className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      onClick={refresh}
+                      className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-sm text-white/55">
+                  Showing <span className="font-semibold text-white/80">{filtered.length}</span> of{" "}
+                  <span className="font-semibold text-white/80">{issues.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              {filtered.length === 0 ? (
+                <EmptyState title="No matches" subtitle="Try adjusting filters or search." />
+              ) : (
+                <div className="grid gap-3">
+                  {filtered.map((i) => (
+                    <button
+                      key={i.id}
+                      onClick={() => router.push(`/issues/${i.id}`)}
+                      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-semibold text-white/90">
+                            {i.title || "(Untitled)"}
+                          </div>
+                          <div className="mt-1 text-sm text-white/60">
+                            {i.locationText || "Location not provided"}
+                          </div>
+                          <div className="mt-2 text-xs text-white/55">
+                            {i.section} • {i.category} • by{" "}
+                            <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
+                            {i.attachmentDataUrl ? " • Attachment" : ""}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right text-xs text-white/60">
+                          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
+                            {getScore(i)}
+                          </div>
+                          <div className="mt-2">
+                            {i.priority} • {statusLabel(i.status)}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+===== src/app/(app)/setup/section/page.tsx =====
+
+import { Suspense } from "react";
+import SectionPageInner from "./section-page-inner";
+
+export default function SetupSectionPage() {
+  return (
+    <Suspense>
+      <SectionPageInner />
+    </Suspense>
+  );
+}
+
+===== src/app/(app)/setup/role/page.tsx =====
+
+"use client";
+
+import { Suspense } from "react";
+import RolePageInner from "./role-page-inner";
+
+export default function RolePage() {
+  return (
+    <Suspense fallback={null}>
+      <RolePageInner />
+    </Suspense>
+  );
+}
