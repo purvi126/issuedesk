@@ -1,65 +1,273 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 import {
   addComment,
   getIssue,
   getScore,
-  hasUpvoted,
   toggleUpvote,
+  type Issue,
 } from "@/lib/store";
 
-export default function IssueDetailPage() {
-  const router = useRouter();
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  section?: string;
+  status?: string;
+  createdByEmail?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  locationText?: string;
+  attachmentName?: string;
+  createdAt?: string;
+};
+
+type DetailComment = {
+  id: string;
+  text: string;
+  createdAt: number;
+};
+
+type DetailIssue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: "LOW" | "MED" | "HIGH";
+  section: "HOSTEL" | "CAMPUS";
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
+  createdById: string;
+  locationText: string;
+  attachmentDataUrl?: string;
+  createdAt?: number;
+  comments: DetailComment[];
+};
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Block ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  return "";
+}
+
+function normalizeStoreIssue(issue: Issue): DetailIssue {
+  return {
+    id: issue.id,
+    title: issue.title || "(Untitled)",
+    description: issue.description || "",
+    category: issue.category || "General",
+    priority: issue.priority,
+    section: issue.section,
+    status: issue.status,
+    createdById: issue.createdById || "",
+    locationText: issue.locationText || "",
+    attachmentDataUrl: issue.attachmentDataUrl || "",
+    createdAt: typeof issue.createdAt === "number" ? issue.createdAt : Date.now(),
+    comments: Array.isArray(issue.comments)
+      ? issue.comments.map((c) => ({
+        id: c.id,
+        text: c.text,
+        createdAt: c.createdAt,
+      }))
+      : [],
+  };
+}
+
+function toUiIssue(issue: ApiIssue): DetailIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : Date.now();
+
+  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as
+    | "LOW"
+    | "MED"
+    | "HIGH";
+
+  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as
+    | "HOSTEL"
+    | "CAMPUS";
+
+  const status = (issue.status?.trim().toUpperCase() || "OPEN") as
+    | "OPEN"
+    | "IN_PROGRESS"
+    | "RESOLVED";
+
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    description: issue.description?.trim() || "",
+    category: issue.category?.trim() || "General",
+    priority,
+    section,
+    status,
+    createdById: issue.createdByEmail?.trim() || "",
+    locationText: buildLocationText(issue),
+    attachmentDataUrl: issue.attachmentName?.trim()
+      ? issue.attachmentName.trim()
+      : "",
+    createdAt,
+    comments: [],
+  };
+}
+
+export default function IssueDetailsPage() {
   const params = useParams<{ id: string }>();
-  const id = params?.id ?? "";
+  const router = useRouter();
 
-  const { data: session } = useSession();
-  const userId = (session?.user?.email ?? "") as string;
+  const [mounted, setMounted] = useState(false);
+  const [issue, setIssue] = useState<DetailIssue | null>(null);
+  const [storeIssue, setStoreIssue] = useState<Issue | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [isMongoIssue, setIsMongoIssue] = useState(false);
 
-  const [tick, setTick] = useState(0);
-  const [text, setText] = useState("");
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const issue = useMemo(() => {
-    if (!id) return undefined;
-    return getIssue(id);
-  }, [id, tick]);
+  useEffect(() => {
+    if (!mounted || !params?.id) return;
 
-  function requireSignIn(nextPath: string) {
-    router.push(`/login?next=${encodeURIComponent(nextPath)}`);
+    let ignore = false;
+
+    async function loadIssue() {
+      try {
+        const localIssue = getIssue(params.id);
+
+        if (localIssue) {
+          if (!ignore) {
+            setStoreIssue(localIssue);
+            setIssue(normalizeStoreIssue(localIssue));
+            setIsMongoIssue(false);
+          }
+          return;
+        }
+
+        const res = await fetch(`/api/issues/${params.id}`, {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Issue not found");
+        }
+
+        if (!ignore) {
+          setStoreIssue(null);
+          setIssue(toUiIssue(data.issue));
+          setIsMongoIssue(true);
+        }
+      } catch (error) {
+        console.error("[issue details] load failed:", error);
+        if (!ignore) {
+          setStoreIssue(null);
+          setIssue(null);
+          setIsMongoIssue(false);
+        }
+      }
+    }
+
+    loadIssue();
+
+    return () => {
+      ignore = true;
+    };
+  }, [mounted, params?.id]);
+
+  const score = useMemo(() => {
+    if (!issue) return 0;
+    if (isMongoIssue) return issue.comments.length;
+    return storeIssue ? getScore(storeIssue) : 0;
+  }, [issue, isMongoIssue, storeIssue]);
+
+  function handleUpvote() {
+    if (!issue || isMongoIssue) return;
+
+    toggleUpvote(issue.id, "student@vit.ac.in");
+
+    const updated = getIssue(issue.id);
+    if (updated) {
+      setStoreIssue(updated);
+      setIssue(normalizeStoreIssue(updated));
+    }
   }
 
-  function onUpvote() {
+  function handleAddComment() {
     if (!issue) return;
-    if (!userId) return requireSignIn(`/issues/${issue.id}`);
-    toggleUpvote(issue.id, userId);
-    setTick((t) => t + 1);
+
+    const text = commentText.trim();
+    if (!text) return;
+
+    if (isMongoIssue) {
+      const nextComment: DetailComment = {
+        id: crypto.randomUUID(),
+        text,
+        createdAt: Date.now(),
+      };
+
+      setIssue({
+        ...issue,
+        comments: [...issue.comments, nextComment],
+      });
+      setCommentText("");
+      return;
+    }
+
+    addComment(issue.id, text);
+
+    const updated = getIssue(issue.id);
+    if (updated) {
+      setStoreIssue(updated);
+      setIssue(normalizeStoreIssue(updated));
+    }
+
+    setCommentText("");
   }
 
-  function submitComment() {
-    const v = text.trim();
-    if (!issue || !v) return;
-    if (!userId) return requireSignIn(`/issues/${issue.id}`);
-    addComment(issue.id, v);
-    setText("");
-    setTick((t) => t + 1);
-  }
+  if (!mounted) return null;
 
   if (!issue) {
     return (
-      <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
-        <div className="mx-auto max-w-3xl">
+      <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-4xl">
           <button
-            onClick={() => router.push("/issues")}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
+            onClick={() => router.back()}
+            className="mb-6 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10"
           >
             ← Back
           </button>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/60">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-white/70">
             Issue not found.
           </div>
         </div>
@@ -67,154 +275,110 @@ export default function IssueDetailPage() {
     );
   }
 
-  const up = userId ? hasUpvoted(issue, userId) : false;
-  const score = getScore(issue);
-
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex items-center justify-between gap-3">
           <button
             onClick={() => router.push("/issues")}
-            className="w-fit rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10"
           >
             ← Back to issues
           </button>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-white/60">
-            <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-2 py-1 font-semibold text-blue-100">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
               {issue.priority} • {issue.status} • Score {score}
             </span>
-            <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1">
+            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
               ID {issue.id}
             </span>
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm backdrop-blur">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+          <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {issue.title || "(Untitled)"}
+              <h1 className="text-3xl font-semibold tracking-tight text-white">
+                {issue.title}
               </h1>
-              <p className="mt-1 text-sm text-white/60">{issue.locationText}</p>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/60">
-                <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1">
+              <p className="mt-2 text-white/70">
+                {issue.locationText || "Location not provided"}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/75">
                   {issue.section}
                 </span>
-                <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/75">
                   {issue.category}
                 </span>
               </div>
-
-              <div className="mt-5">
-                <div className="text-xs font-semibold text-white/60">Description</div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white/75">
-                  {issue.description || "—"}
-                </p>
-              </div>
-
-              {issue.attachmentDataUrl ? (
-                <div className="mt-6">
-                  <div className="text-xs font-semibold text-white/60">Attachment</div>
-                  <img
-                    src={issue.attachmentDataUrl}
-                    alt={issue.attachmentName || "Attachment"}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.02]"
-                  />
-                </div>
-              ) : null}
             </div>
 
-            {/* voting */}
-            <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
+            <div className="text-right">
               <button
-                onClick={onUpvote}
-                className={[
-                  "h-10 rounded-xl border px-4 text-sm font-semibold transition",
-                  up
-                    ? "border-blue-400/40 bg-blue-500/15 text-blue-100"
-                    : "border-white/10 bg-white/5 text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10",
-                ].join(" ")}
+                onClick={handleUpvote}
+                disabled={isMongoIssue}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ▲ Upvote
               </button>
-
-              <div className="min-w-[72px] text-center text-xl font-semibold text-white/90 sm:py-1">
-                {score}
-              </div>
-
-              
-              {!userId ? (
-                <div className="mt-2 hidden text-center text-xs text-white/50 sm:block">
-                  Sign in to vote
-                </div>
-              ) : null}
+              <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <div className="text-sm font-semibold text-white/70">Description</div>
+            <p className="mt-2 whitespace-pre-wrap text-white/85">
+              {issue.description || "No description provided."}
+            </p>
           </div>
         </div>
 
-        {/* comments */}
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <h2 className="text-sm font-semibold text-white/80">Comments</h2>
+        <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+          <div className="text-xl font-semibold text-white">Comments</div>
 
-          <div className="mt-4 grid gap-3">
+          <div className="mt-4 space-y-3">
             {issue.comments.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/60">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-white/60">
                 No comments yet.
               </div>
             ) : (
-              issue.comments
-                .slice()
-                .sort((a, b) => a.createdAt - b.createdAt)
-                .map((c) => (
-                  <div
-                    key={c.id}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
-                  >
-                    <div className="text-xs text-white/45">
-                      {new Date(c.createdAt).toLocaleString()}
-                    </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-white/75">
-                      {c.text}
-                    </p>
-                  </div>
-                ))
+              issue.comments.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                >
+                  <div className="text-sm text-white/75">{c.text}</div>
+                </div>
+              ))
             )}
           </div>
 
-          <div className="mt-5 border-t border-white/10 pt-4">
-            {!userId ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-white/60">
-                  Sign in to add a comment.
-                </div>
-                <button
-                  onClick={() => requireSignIn(`/issues/${issue.id}`)}
-                  className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
-                >
-                  Go to login
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Add a comment…"
-                  className="min-h-[96px] w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
-                />
-                <div className="flex justify-end">
-                  <button
-                    onClick={submitComment}
-                    className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
-                  >
-                    Post comment
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add a comment..."
+              className="min-h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+            />
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleAddComment}
+                className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+              >
+                Post comment
+              </button>
+            </div>
+
+            {isMongoIssue ? (
+              <p className="mt-3 text-xs text-white/45">
+                Upvotes and persistent comments for Mongo issues are not wired yet.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

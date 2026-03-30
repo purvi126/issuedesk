@@ -5,11 +5,44 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import EmptyState from "@/components/empty-state";
 import KanbanBoard from "@/components/kanban-board";
-import { getIssues, getScore } from "@/lib/store";
-import type { Issue, Status, Priority, Section } from "@/lib/store";
+import type { Status, Priority, Section } from "@/lib/store";
 
 type ViewMode = "board" | "list";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  section?: string;
+  status?: string;
+  createdByEmail?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  locationText?: string;
+  attachmentName?: string;
+  createdAt?: string;
+};
+
+type RecentIssue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: Priority;
+  section: Section;
+  status: Status;
+  createdById: string;
+  locationText: string;
+  attachmentDataUrl?: string;
+  createdAt?: number;
+  comments: unknown[];
+};
 
 function statusLabel(s: Status) {
   if (s === "IN_PROGRESS") return "In progress";
@@ -17,9 +50,70 @@ function statusLabel(s: Status) {
   return "Open";
 }
 
-function creatorLabel(i: Issue) {
+function creatorLabel(i: RecentIssue) {
   const c = (i.createdById ?? "").trim();
   return c.length > 0 ? c : "Unknown";
+}
+
+function getScore(i: RecentIssue) {
+  const comments = Array.isArray(i.comments) ? i.comments.length : 0;
+  return comments;
+}
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Block ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  return "";
+}
+
+function toUiIssue(issue: ApiIssue): RecentIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : Date.now();
+
+  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as Priority;
+  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as Section;
+  const status = (issue.status?.trim().toUpperCase() || "OPEN") as Status;
+
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    description: issue.description?.trim() || "",
+    category: issue.category?.trim() || "General",
+    priority,
+    section,
+    status,
+    createdById: issue.createdByEmail?.trim() || "",
+    locationText: buildLocationText(issue),
+    attachmentDataUrl: issue.attachmentName?.trim()
+      ? issue.attachmentName.trim()
+      : "",
+    createdAt,
+    comments: [],
+  };
 }
 
 export default function AllIssuesPage() {
@@ -28,7 +122,7 @@ export default function AllIssuesPage() {
 
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<ViewMode>("list");
-  const [issues, setIssues] = useState<Issue[]>([]);
+  const [issues, setIssues] = useState<RecentIssue[]>([]);
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status | "ALL">("ALL");
@@ -46,21 +140,44 @@ export default function AllIssuesPage() {
   useEffect(() => {
     if (!mounted) return;
 
-    const loadIssues = () => {
+    let ignore = false;
+
+    async function loadIssues() {
       try {
-        setIssues(getIssues());
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load issues");
+        }
+
+        const mapped = Array.isArray(data.issues)
+          ? data.issues.map(toUiIssue)
+          : [];
+
+        if (!ignore) {
+          setIssues(mapped);
+        }
       } catch (error) {
         console.error("Failed to load issues:", error);
-        setIssues([]);
+        if (!ignore) {
+          setIssues([]);
+        }
       }
-    };
+    }
 
     loadIssues();
 
-    const onFocus = () => loadIssues();
+    const onFocus = () => {
+      loadIssues();
+    };
+
     window.addEventListener("focus", onFocus);
 
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      ignore = true;
+      window.removeEventListener("focus", onFocus);
+    };
   }, [mounted]);
 
   const categories = useMemo(() => {
@@ -88,7 +205,7 @@ export default function AllIssuesPage() {
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
 
-    const hitsQuery = (i: Issue) => {
+    const hitsQuery = (i: RecentIssue) => {
       if (!query) return true;
       const hay =
         `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
@@ -134,9 +251,20 @@ export default function AllIssuesPage() {
     setSort("NEWEST");
   }
 
-  function refresh() {
+  async function refresh() {
     try {
-      setIssues(getIssues());
+      const res = await fetch("/api/issues", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to refresh issues");
+      }
+
+      const mapped = Array.isArray(data.issues)
+        ? data.issues.map(toUiIssue)
+        : [];
+
+      setIssues(mapped);
     } catch (error) {
       console.error("Failed to refresh issues:", error);
       setIssues([]);
@@ -210,7 +338,7 @@ export default function AllIssuesPage() {
           </div>
         ) : view === "board" ? (
           <div className="mt-6">
-            <KanbanBoard issues={filtered} />
+            <KanbanBoard issues={filtered as never} />
           </div>
         ) : (
           <>
@@ -355,7 +483,9 @@ export default function AllIssuesPage() {
                           <div className="truncate text-base font-semibold text-white/90">
                             {i.title || "(Untitled)"}
                           </div>
-                          <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
+                          <div className="mt-1 text-sm text-white/60">
+                            {i.locationText || "Location not provided"}
+                          </div>
                           <div className="mt-2 text-xs text-white/55">
                             {i.section} • {i.category} • by{" "}
                             <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
