@@ -27,31 +27,32 @@ type ApiIssue = {
   createdByEmail?: string;
   hostelGender?: string;
   hostelName?: string;
+  hostelBlock?: string;
   campusBlock?: string;
   roomNumber?: string;
   locationText?: string;
 };
-
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
   if (issue.section === "Hostel") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
     const parts = [
-      issue.hostelGender,
-      issue.hostelName ? `Block ${issue.hostelName}` : "",
-      issue.roomNumber ? `Room ${issue.roomNumber}` : "",
+      issue.hostelGender?.trim(),
+      block ? `Hostel ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
     ].filter(Boolean);
 
-    return parts.join(", ");
+    return parts.join(" • ");
   }
 
   if (issue.section === "Campus") {
     const parts = [
-      issue.campusBlock,
-      issue.roomNumber ? `Room ${issue.roomNumber}` : "",
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
     ].filter(Boolean);
 
-    return parts.join(", ");
+    return parts.join(" • ");
   }
 
   return "";
