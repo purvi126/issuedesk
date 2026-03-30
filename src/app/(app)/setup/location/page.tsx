@@ -5,38 +5,40 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CAMPUS_BUILDINGS, MEN_BLOCKS, WOMEN_BLOCKS } from "@/lib/constants";
 import type { Section, HostelGender } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+
 export default function LocationPage() {
   const router = useRouter();
   const sp = useSearchParams();
   const nextParam = sp.get("next") || "";
 
-  const section: Section =
-    (typeof window !== "undefined"
-      ? (localStorage.getItem("issuedesk_section") as Section | null)
-      : null) ?? "HOSTEL";
-
-  const genderRaw =
-    typeof window !== "undefined" ? localStorage.getItem("issuedesk_gender") : null;
-
-  const gender: HostelGender = genderRaw === "WOMEN" ? "WOMEN" : "MEN";
-
-  const blocks = useMemo(() => {
-    return gender === "WOMEN" ? [...WOMEN_BLOCKS] : [...MEN_BLOCKS];
-  }, [gender]);
-
-  // Optional debug log (remove later)
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("section", section, "gender", gender, "blocks", blocks.length);
-  }, [section, gender, blocks.length]);
+  const [mounted, setMounted] = useState(false);
+  const [section, setSection] = useState<Section>("HOSTEL");
+  const [gender, setGender] = useState<HostelGender>("MEN");
 
   const [block, setBlock] = useState("");
   const [building, setBuilding] = useState("");
   const [room, setRoom] = useState("");
 
+  useEffect(() => {
+    setMounted(true);
+
+    const storedSection =
+      (localStorage.getItem("issuedesk_section") as Section | null) ?? "HOSTEL";
+    const genderRaw = localStorage.getItem("issuedesk_gender");
+
+    setSection(storedSection);
+    setGender(genderRaw === "WOMEN" ? "WOMEN" : "MEN");
+  }, []);
+
+  const blocks = useMemo(() => {
+    return gender === "WOMEN" ? [...WOMEN_BLOCKS] : [...MEN_BLOCKS];
+  }, [gender]);
+
   const isHostel = section === "HOSTEL";
   const canNext =
-    room.trim().length > 0 && (isHostel ? block.trim().length > 0 : building.trim().length > 0);
+    room.trim().length > 0 &&
+    (isHostel ? block.trim().length > 0 : building.trim().length > 0);
 
   function next() {
     if (!canNext) return;
@@ -65,10 +67,14 @@ export default function LocationPage() {
     router.push(`/setup/issue${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`);
   }
 
+  if (!mounted) return null;
+
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Location</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Location
+        </h1>
         <p className="mt-2 text-sm text-white/60">
           {isHostel ? "Select block and room number." : "Select building and room/lab."}
         </p>
@@ -78,7 +84,9 @@ export default function LocationPage() {
             {isHostel ? (
               <>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Block</label>
+                  <label className="text-sm font-semibold text-white/80">
+                    Block
+                  </label>
                   <select
                     value={block}
                     onChange={(e) => setBlock(e.target.value)}
@@ -96,7 +104,9 @@ export default function LocationPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Room number</label>
+                  <label className="text-sm font-semibold text-white/80">
+                    Room number
+                  </label>
                   <input
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
@@ -108,7 +118,9 @@ export default function LocationPage() {
             ) : (
               <>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Building</label>
+                  <label className="text-sm font-semibold text-white/80">
+                    Building
+                  </label>
                   <select
                     value={building}
                     onChange={(e) => setBuilding(e.target.value)}
@@ -126,7 +138,9 @@ export default function LocationPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Room / Lab</label>
+                  <label className="text-sm font-semibold text-white/80">
+                    Room / Lab
+                  </label>
                   <input
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
@@ -145,7 +159,7 @@ export default function LocationPage() {
               "mt-6 h-11 rounded-xl border px-5 text-sm font-semibold transition",
               canNext
                 ? "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15"
-                : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed",
+                : "cursor-not-allowed border-white/10 bg-white/5 text-white/40",
             ].join(" ")}
           >
             Next
