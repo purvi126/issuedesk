@@ -28,10 +28,7 @@ export async function GET() {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[issues GET] Failed:", message);
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
@@ -53,6 +50,7 @@ export async function POST(req: NextRequest) {
       roomNumber,
       locationText,
       createdByEmail,
+      createdById,
       attachmentName,
     } = body;
 
@@ -70,6 +68,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedCreatedByEmail =
+      typeof createdByEmail === "string" && createdByEmail.trim()
+        ? createdByEmail.trim().toLowerCase()
+        : typeof createdById === "string" && createdById.trim()
+        ? createdById.trim().toLowerCase()
+        : "";
+
     const db = await getDb();
 
     const doc = {
@@ -85,8 +90,8 @@ export async function POST(req: NextRequest) {
       roomNumber: typeof roomNumber === "string" ? roomNumber.trim() : "",
       locationText: typeof locationText === "string" ? locationText.trim() : "",
       attachmentName: typeof attachmentName === "string" ? attachmentName.trim() : "",
-      createdByEmail:
-        typeof createdByEmail === "string" ? createdByEmail.trim() : "",
+      createdByEmail: normalizedCreatedByEmail,
+      createdById: normalizedCreatedByEmail,
       status: "OPEN",
       createdAt: new Date(),
     };
@@ -99,6 +104,7 @@ export async function POST(req: NextRequest) {
         insertedId: result.insertedId.toString(),
         issue: {
           ...doc,
+          _id: result.insertedId.toString(),
           createdAt: doc.createdAt.toISOString(),
         },
       },
@@ -107,9 +113,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[issues POST] Failed:", message);
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

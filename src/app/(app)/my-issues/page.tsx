@@ -25,13 +25,16 @@ type ApiIssue = {
   section?: string;
   status?: string;
   createdByEmail?: string;
+  createdById?: string;
   hostelGender?: string;
   hostelName?: string;
   hostelBlock?: string;
   campusBlock?: string;
   roomNumber?: string;
   locationText?: string;
-};function buildLocationText(issue: ApiIssue) {
+};
+
+function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
   const section = issue.section?.trim().toUpperCase();
@@ -60,6 +63,11 @@ type ApiIssue = {
 }
 
 function toUiIssue(issue: ApiIssue): UiIssue {
+  const owner =
+    issue.createdByEmail?.trim().toLowerCase() ||
+    issue.createdById?.trim().toLowerCase() ||
+    "";
+
   return {
     id: issue._id,
     title: issue.title?.trim() || "(Untitled)",
@@ -68,7 +76,7 @@ function toUiIssue(issue: ApiIssue): UiIssue {
     priority: issue.priority?.trim() || "Low",
     section: issue.section?.trim() || "Unknown",
     status: issue.status?.trim() || "Open",
-    createdById: issue.createdByEmail?.trim().toLowerCase() || "",
+    createdById: owner,
     locationText: buildLocationText(issue),
   };
 }
@@ -169,8 +177,7 @@ export default function MyIssuesPage() {
                 </div>
 
                 <div className="mt-2 text-sm text-white/50">
-                  {issue.section} • {issue.category} • {issue.priority} •{" "}
-                  {issue.status}
+                  {issue.section} • {issue.category} • {issue.priority} • {issue.status}
                 </div>
               </button>
             ))}
