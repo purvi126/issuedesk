@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-import { addIssue, fileToDataUrl } from "@/lib/store";
-import type { Section, HostelGender } from "@/lib/store";
 import { HOSTEL_CATEGORIES, CAMPUS_CATEGORIES } from "@/lib/constants";
 
 type Priority = "LOW" | "MED" | "HIGH";
+type Section = "HOSTEL" | "CAMPUS";
+type HostelGender = "MEN" | "WOMEN";
 
 type LocationDraft = {
   section: Section;
@@ -34,22 +34,27 @@ function readLocationDraft(): LocationDraft | null {
   const roomNumber = localStorage.getItem("issuedesk_room") ?? "";
 
   if (section === "HOSTEL") {
-    const hostelGender = (localStorage.getItem("issuedesk_gender") as HostelGender | null) ?? "MEN";
+    const hostelGender =
+      (localStorage.getItem("issuedesk_gender") as HostelGender | null) ?? "MEN";
     const hostelBlock = localStorage.getItem("issuedesk_hostel_block") ?? "";
     return { section, hostelGender, hostelBlock, roomNumber };
-  } else {
-    const buildingName = localStorage.getItem("issuedesk_campus_building") ?? "";
-    return { section, buildingName, roomNumber };
   }
+
+  const buildingName = localStorage.getItem("issuedesk_campus_building") ?? "";
+  return { section, buildingName, roomNumber };
 }
 
 function buildLocationText(d: LocationDraft) {
   const room = (d.roomNumber ?? "").trim();
+
   if (d.section === "HOSTEL") {
-    const g = d.hostelGender ?? "MEN";
-    const b = (d.hostelBlock ?? "").trim();
-    return `${g} Block ${b}${room ? `, Room ${room}` : ""}`.replace(/\s+/g, " ").trim();
+    const gender = d.hostelGender ?? "MEN";
+    const block = (d.hostelBlock ?? "").trim();
+    return `${gender} Block ${block}${room ? `, Room ${room}` : ""}`
+      .replace(/\s+/g, " ")
+      .trim();
   }
+
   const building = (d.buildingName ?? "").trim();
   return `${building}${room ? ` ${room}` : ""}`.replace(/\s+/g, " ").trim();
 }
@@ -61,17 +66,17 @@ export default function SetupIssuePage() {
   const draft = useMemo(() => readLocationDraft(), []);
   const locationText = draft ? buildLocationText(draft) : "Unknown location";
 
-  const userId = session?.user?.email ?? "";
-
   const categories = useMemo(() => {
     if (!draft) return [];
-    return draft.section === "HOSTEL" ? [...HOSTEL_CATEGORIES] : [...CAMPUS_CATEGORIES];
+    return draft.section === "HOSTEL"
+      ? [...HOSTEL_CATEGORIES]
+      : [...CAMPUS_CATEGORIES];
   }, [draft]);
 
-  const [category, setCategory] = useState<string>("");
+  const [category, setCategory] = useState("");
   const [priority, setPriority] = useState<Priority>("LOW");
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,46 +86,59 @@ export default function SetupIssuePage() {
       !!draft &&
       category.trim().length > 0 &&
       title.trim().length > 0 &&
-      description.trim().length > 0
+      description.trim().length > 0 &&
+      !submitting
     );
-  }, [status, draft, category, title, description]);
+  }, [status, draft, category, title, description, submitting]);
 
   async function create() {
     if (!canSubmit || !draft) return;
+
     setSubmitting(true);
 
     try {
-      let attachmentDataUrl: string | undefined;
-      let attachmentName: string | undefined;
-
-      if (imageFile) {
-        attachmentDataUrl = await fileToDataUrl(imageFile);
-        attachmentName = imageFile.name;
-      }
-
-      const created = addIssue({
+      const payload = {
         section: draft.section,
-
-        hostelGender: draft.section === "HOSTEL" ? draft.hostelGender : undefined,
-        hostelBlock: draft.section === "HOSTEL" ? draft.hostelBlock : undefined,
-
-        buildingName: draft.section === "CAMPUS" ? draft.buildingName : undefined,
-
-        roomNumber: draft.roomNumber,
+        hostelGender: draft.section === "HOSTEL" ? draft.hostelGender ?? "" : "",
+        hostelName: "",
+        hostelBlock: draft.section === "HOSTEL" ? draft.hostelBlock ?? "" : "",
+        campusBlock: draft.section === "CAMPUS" ? draft.buildingName ?? "" : "",
+        roomNumber: draft.roomNumber ?? "",
         locationText,
-
-        category,
+        category: category.trim(),
         priority,
         title: title.trim(),
         description: description.trim(),
+        createdByEmail: (session?.user?.email ?? "").trim().toLowerCase(),
+        attachmentName: imageFile?.name ?? "",
+      };
 
-        createdById: userId,
-
-        attachmentDataUrl,
-        attachmentName,
+      const res = await fetch("/api/issues", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
-      router.push(created?.id ? `/issues/${created.id}` : "/recent");
+      const data = await res.json();
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Failed to create issue");
+      }
+
+      const newId = data?.insertedId || data?.issue?._id;
+
+      localStorage.removeItem("issuedesk_location_draft");
+
+      if (newId) {
+        router.push(`/issues/${newId}`);
+      } else {
+        router.push("/my-issues");
+      }
+    } catch (error) {
+      console.error("[setup/issue] create failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to create issue");
     } finally {
       setSubmitting(false);
     }
@@ -147,9 +165,11 @@ export default function SetupIssuePage() {
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Raise Issue</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Raise Issue
+        </h1>
         <p className="mt-2 text-sm text-white/60">
-          Location: <span className="text-white/80 font-semibold">{locationText}</span>
+          Location: <span className="font-semibold text-white/80">{locationText}</span>
         </p>
 
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-sm backdrop-blur">
@@ -207,27 +227,31 @@ export default function SetupIssuePage() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-white/80">Attach image (optional)</label>
+              <label className="text-sm font-semibold text-white/80">
+                Attach image (optional)
+              </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
                 className="block w-full text-sm text-white/70 file:mr-3 file:rounded-xl file:border file:border-white/10 file:bg-white/5 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white/80 hover:file:border-blue-400/30 hover:file:bg-blue-500/10"
               />
-              {imageFile ? <div className="text-xs text-white/50">Selected: {imageFile.name}</div> : null}
+              {imageFile ? (
+                <div className="text-xs text-white/50">Selected: {imageFile.name}</div>
+              ) : null}
             </div>
 
             <button
               onClick={create}
-              disabled={!canSubmit || submitting}
+              disabled={!canSubmit}
               className={[
                 "h-11 w-full rounded-xl border px-4 text-sm font-semibold transition",
-                canSubmit && !submitting
+                canSubmit
                   ? "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15"
-                  : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed",
+                  : "cursor-not-allowed border-white/10 bg-white/5 text-white/40",
               ].join(" ")}
             >
-              {submitting ? "Creating…" : "Create issue"}
+              {submitting ? "Creating..." : "Create issue"}
             </button>
 
             <button
