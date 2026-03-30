@@ -2,70 +2,168 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getIssues } from "@/lib/store";
-import type { Issue } from "@/lib/store";
+
+type Issue = {
+  id: string;
+  title: string;
+  priority: string;
+  status: string;
+  locationText: string;
+  section: string;
+  category: string;
+};
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  priority?: string;
+  status?: string;
+  locationText?: string;
+  section?: string;
+  category?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+};
 
 function card(): React.CSSProperties {
-    return {
-        border: "1px solid var(--border)",
-        borderRadius: 16,
-        background: "var(--card)",
-        boxShadow: "var(--shadow)",
-        padding: 14,
-    };
+  return {
+    border: "1px solid var(--border)",
+    borderRadius: 16,
+    background: "var(--card)",
+    boxShadow: "var(--shadow)",
+    padding: 14,
+  };
+}
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Hostel ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(" • ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(" • ");
+  }
+
+  return "";
+}
+
+function toUiIssue(issue: ApiIssue): Issue {
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    priority: issue.priority?.trim() || "LOW",
+    status: issue.status?.trim() || "OPEN",
+    locationText: buildLocationText(issue),
+    section: issue.section?.trim() || "Unknown",
+    category: issue.category?.trim() || "General",
+  };
 }
 
 export default function TechCompletedPage() {
-    const router = useRouter();
-    const [issues, setIssues] = useState<Issue[]>([]);
-    const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [mounted, setMounted] = useState(false);
 
-    useEffect(() => {
-        setMounted(true);
-        setIssues(getIssues());
-    }, []);
+  useEffect(() => {
+    let ignore = false;
 
-    const closed = useMemo(() => issues.filter((i) => i.status === "RESOLVED"), [issues]);
+    async function loadIssues() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
 
-    if (!mounted) {
-        return (
-            <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-                <div style={{ color: "var(--muted)" }}>Loading…</div>
-            </div>
-        );
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load issues");
+        }
+
+        const mapped = Array.isArray(data.issues) ? data.issues.map(toUiIssue) : [];
+
+        if (!ignore) {
+          setIssues(mapped);
+          setMounted(true);
+        }
+      } catch (error) {
+        console.error("[tech/completed] load failed:", error);
+        if (!ignore) {
+          setIssues([]);
+          setMounted(true);
+        }
+      }
     }
 
-    return (
-        <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-            <h2 style={{ margin: 0, fontSize: 34, fontWeight: 1000 }}>Completed</h2>
-            <p style={{ marginTop: 10, color: "var(--muted)", fontWeight: 700 }}>
-                Closed issues (history).
-            </p>
+    loadIssues();
 
-            {closed.length === 0 ? (
-                <div style={{ marginTop: 18, color: "var(--muted)" }}>No closed issues yet.</div>
-            ) : (
-                <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
-                    {closed.map((i) => (
-                        <button
-                            key={i.id}
-                            onClick={() => router.push(`/issues/${i.id}`)}
-                            style={{ ...card(), textAlign: "left", cursor: "pointer" }}
-                        >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                                <div style={{ fontWeight: 1000 }}>{i.title || "(Untitled)"}</div>
-                                <div style={{ color: "var(--muted)", fontWeight: 900 }}>
-                                    {i.priority} • {i.status}
-                                </div>
-                            </div>
-                            <div style={{ marginTop: 6, color: "var(--muted)" }}>{i.locationText}</div>
-                            <div style={{ marginTop: 10, color: "var(--muted)", fontWeight: 800 }}>
-                                {i.section} • {i.category}
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+    function handleWindowFocus() {
+      loadIssues();
+    }
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      ignore = true;
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, []);
+
+  const closed = useMemo(() => issues.filter((i) => i.status === "RESOLVED"), [issues]);
+
+  if (!mounted) {
+    return (
+      <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
+        <div style={{ color: "var(--muted)" }}>Loading…</div>
+      </div>
     );
+  }
+
+  return (
+    <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
+      <h2 style={{ margin: 0, fontSize: 34, fontWeight: 1000 }}>Completed</h2>
+      <p style={{ marginTop: 10, color: "var(--muted)", fontWeight: 700 }}>
+        Closed issues (history).
+      </p>
+
+      {closed.length === 0 ? (
+        <div style={{ marginTop: 18, color: "var(--muted)" }}>No closed issues yet.</div>
+      ) : (
+        <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
+          {closed.map((i) => (
+            <button
+              key={i.id}
+              onClick={() => router.push(`/issues/${i.id}`)}
+              style={{ ...card(), textAlign: "left", cursor: "pointer" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ fontWeight: 1000 }}>{i.title || "(Untitled)"}</div>
+                <div style={{ color: "var(--muted)", fontWeight: 900 }}>
+                  {i.priority} • {i.status}
+                </div>
+              </div>
+              <div style={{ marginTop: 6, color: "var(--muted)" }}>{i.locationText}</div>
+              <div style={{ marginTop: 10, color: "var(--muted)", fontWeight: 800 }}>
+                {i.section} • {i.category}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
