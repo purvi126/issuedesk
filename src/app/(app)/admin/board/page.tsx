@@ -3,23 +3,131 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-import { getIssues, updateIssue, type Issue } from "@/lib/store";
 
 type ViewMode = "board" | "list";
+type ReviewState = "PENDING" | "ASSIGNED" | "REJECTED";
+type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+
+type Issue = {
+  id: string;
+  title: string;
+  locationText: string;
+  category: string;
+  section: string;
+  priority: string;
+  status: Status;
+  reviewState?: ReviewState;
+};
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  category?: string;
+  section?: string;
+  priority?: string;
+  status?: string;
+  locationText?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  reviewState?: ReviewState;
+};
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Hostel ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(" • ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(" • ");
+  }
+
+  return "";
+}
+
+function toUiIssue(issue: ApiIssue): Issue {
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    locationText: buildLocationText(issue),
+    category: issue.category?.trim() || "General",
+    section: issue.section?.trim() || "Unknown",
+    priority: issue.priority?.trim() || "LOW",
+    status: (issue.status?.trim() as Status) || "OPEN",
+    reviewState: issue.reviewState || "PENDING",
+  };
+}
 
 export default function AdminBoardPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<ViewMode>("board");
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  function refreshIssues() {
-    setIssues(getIssues());
+  async function refreshIssues() {
+    try {
+      setRefreshing(true);
+
+      const res = await fetch("/api/issues", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to load issues");
+      }
+
+      const mapped = Array.isArray(data.issues)
+        ? data.issues.map(toUiIssue)
+        : [];
+
+      setIssues(mapped);
+    } catch (error) {
+      console.error("[admin/board] load failed:", error);
+      setIssues([]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
-  function handleUpdateIssue(id: string, patch: Partial<Issue>) {
-    updateIssue(id, patch);
-    refreshIssues();
+  async function handleUpdateIssue(id: string, patch: Partial<Issue>) {
+    try {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(patch),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update issue");
+      }
+
+      await refreshIssues();
+    } catch (error) {
+      console.error("[admin/board] update failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to update issue");
+    }
   }
 
   useEffect(() => {
@@ -39,24 +147,14 @@ export default function AdminBoardPage() {
       refreshIssues();
     }
 
-    function handleStorage() {
-      refreshIssues();
-    }
-
     window.addEventListener("focus", handleWindowFocus);
-    window.addEventListener("storage", handleStorage);
-
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
-      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
   const pendingIssues = useMemo(
-    () =>
-      issues.filter(
-        (issue) => (issue.reviewState ?? "PENDING") === "PENDING"
-      ),
+    () => issues.filter((issue) => (issue.reviewState ?? "PENDING") === "PENDING"),
     [issues]
   );
 
@@ -64,13 +162,14 @@ export default function AdminBoardPage() {
     () =>
       issues.filter(
         (issue) =>
-          issue.reviewState === "ASSIGNED" && issue.status !== "RESOLVED"
+          (issue.reviewState ?? "PENDING") === "ASSIGNED" &&
+          issue.status !== "RESOLVED"
       ),
     [issues]
   );
 
   const rejectedIssues = useMemo(
-    () => issues.filter((issue) => issue.reviewState === "REJECTED"),
+    () => issues.filter((issue) => (issue.reviewState ?? "PENDING") === "REJECTED"),
     [issues]
   );
 
@@ -100,7 +199,7 @@ export default function AdminBoardPage() {
               onClick={refreshIssues}
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">

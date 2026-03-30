@@ -1,8 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { addComment, updateIssue, getScore } from "@/lib/store";
-import type { Issue, Status } from "@/lib/store";
+
+type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+
+type Issue = {
+  id: string;
+  title: string;
+  status: Status;
+  locationText?: string;
+  category?: string;
+  section?: string;
+  priority?: string;
+  attachmentDataUrl?: string;
+};
 
 type Role = "STUDENT" | "ADMIN" | "TECH";
 
@@ -31,7 +42,7 @@ export default function KanbanBoard({
   onChanged,
 }: {
   issues: Issue[];
-  role?: Role; // ✅ optional now
+  role?: Role;
   onChanged?: () => void;
 }) {
   const router = useRouter();
@@ -43,14 +54,27 @@ export default function KanbanBoard({
     items: issues.filter((i) => i.status === col),
   }));
 
-  function setStatus(id: string, status: Status) {
-    updateIssue(id, { status });
-    onChanged?.();
-  }
+  async function setStatus(id: string, status: Status) {
+    try {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
 
-  function addNote(id: string) {
-    addComment(id, "Staff note added.");
-    onChanged?.();
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update status");
+      }
+
+      onChanged?.();
+    } catch (error) {
+      console.error("[kanban] update failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to update issue");
+    }
   }
 
   return (
@@ -101,7 +125,7 @@ export default function KanbanBoard({
 
                       <div className="shrink-0 text-right">
                         <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
-                          {getScore(i)}
+                          {statusLabel(i.status)}
                         </div>
                         <div className="mt-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
                           {i.priority}
@@ -124,7 +148,7 @@ export default function KanbanBoard({
                     </div>
                   </button>
 
-                  {(role === "ADMIN" || role === "TECH") ? (
+                  {role === "ADMIN" || role === "TECH" ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {i.status === "OPEN" ? (
                         <button
@@ -143,13 +167,6 @@ export default function KanbanBoard({
                           Resolve
                         </button>
                       ) : null}
-
-                      <button
-                        onClick={() => addNote(i.id)}
-                        className="h-9 rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-semibold text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
-                      >
-                        Add note
-                      </button>
                     </div>
                   ) : null}
                 </div>
