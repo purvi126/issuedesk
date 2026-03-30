@@ -12,7 +12,7 @@ function dashboardFor(role: Role) {
   return "/issues";
 }
 
-export default function SetupRolePage() {
+export default function RolePageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") || "";
@@ -20,10 +20,16 @@ export default function SetupRolePage() {
   const [picked, setPicked] = useState<Role | null>(null);
 
   function choose(role: Role) {
-  setPicked(role);
-  sessionStorage.setItem("issuedesk_role", role);
-  router.replace(dashboardFor(role));
-}
+    setPicked(role);
+    sessionStorage.setItem("issuedesk_role", role);
+
+    if (next) {
+      router.replace(next);
+      return;
+    }
+
+    router.replace(dashboardFor(role));
+  }
 
   return (
     <main className="min-h-screen px-6 py-10">
