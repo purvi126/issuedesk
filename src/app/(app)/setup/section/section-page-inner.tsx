@@ -18,19 +18,14 @@ export default function SectionPageInner() {
     localStorage.setItem("issuedesk_section", section);
     localStorage.setItem("issuedesk_domain", section);
 
-    if (section === "HOSTEL") {
-      router.push(`/setup/gender${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-    } else {
-      router.push(`/setup/location${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-    }
+    if (section === "HOSTEL") router.push("/setup/gender");
+    else router.push("/setup/location");
   }
 
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Choose section
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Choose section</h1>
         <p className="mt-2 text-sm text-white/60">Tap one to continue.</p>
 
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
@@ -51,8 +46,7 @@ export default function SectionPageInner() {
 
           {next ? (
             <div className="mt-4 text-xs text-white/45">
-              After setup, you’ll be redirected to:{" "}
-              <span className="text-white/70">{next}</span>
+              After setup, you'll be redirected to: <span className="text-white/70">{next}</span>
             </div>
           ) : null}
         </div>
@@ -83,7 +77,7 @@ function ChoiceCard({
           : "border-white/10 bg-white/5 hover:border-blue-400/25 hover:bg-blue-500/5",
       ].join(" ")}
     >
-      <div className="relative mx-auto mb-3 h-40 w-40 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
+      <div className="mx-auto mb-3 relative h-40 w-40 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
         <Image src={img} alt={title} fill className="object-contain p-3" />
       </div>
       <div className="text-lg font-semibold text-white/90">{title}</div>

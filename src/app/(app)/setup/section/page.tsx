@@ -1,11 +1,9 @@
-"use client";
-
 import { Suspense } from "react";
 import SectionPageInner from "./section-page-inner";
 
 export default function SetupSectionPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense>
       <SectionPageInner />
     </Suspense>
   );
