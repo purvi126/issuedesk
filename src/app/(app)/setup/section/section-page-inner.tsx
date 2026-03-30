@@ -19,7 +19,7 @@ export default function SectionPageInner() {
     localStorage.setItem("issuedesk_domain", section);
 
     if (section === "HOSTEL") {
-      router.push("/setup/gender");
+      router.push(`/setup/gender${next ? `?next=${encodeURIComponent(next)}` : ""}`);
     } else {
       router.push(`/setup/location${next ? `?next=${encodeURIComponent(next)}` : ""}`);
     }
