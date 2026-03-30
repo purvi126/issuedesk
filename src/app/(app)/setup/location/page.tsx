@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CAMPUS_BUILDINGS, MEN_BLOCKS, WOMEN_BLOCKS } from "@/lib/constants";
 import type { Section, HostelGender } from "@/lib/store";
 
-export const dynamic = "force-dynamic";
-
-export default function LocationPage() {
+function LocationPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const nextParam = sp.get("next") || "";
@@ -167,5 +165,13 @@ export default function LocationPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LocationPage() {
+  return (
+    <Suspense fallback={null}>
+      <LocationPageInner />
+    </Suspense>
   );
 }
