@@ -31,11 +31,12 @@ type ApiIssue = {
   campusBlock?: string;
   roomNumber?: string;
   locationText?: string;
-};
-function buildLocationText(issue: ApiIssue) {
+};function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
-  if (issue.section === "Hostel") {
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
     const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
     const parts = [
       issue.hostelGender?.trim(),
@@ -46,7 +47,7 @@ function buildLocationText(issue: ApiIssue) {
     return parts.join(" • ");
   }
 
-  if (issue.section === "Campus") {
+  if (section === "CAMPUS") {
     const parts = [
       issue.campusBlock?.trim(),
       issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
