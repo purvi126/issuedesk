@@ -6,12 +6,45 @@ import { getStoredRole, type AppRole } from "@/lib/role";
 import EmptyState from "@/components/empty-state";
 import KanbanBoard from "@/components/kanban-board";
 import NoticesPopup from "@/components/notices-popup";
-import { getIssues, getScore } from "@/lib/store";
-import type { Issue, Status, Priority, Section } from "@/lib/store";
+import type { Status, Priority, Section } from "@/lib/store";
 import { clearExpiredNotices, getActiveNotices, type Notice } from "@/lib/notices";
 
 type ViewMode = "list" | "board";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
+
+type ApiIssue = {
+  _id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+  section?: string;
+  status?: string;
+  createdByEmail?: string;
+  hostelGender?: string;
+  hostelName?: string;
+  hostelBlock?: string;
+  campusBlock?: string;
+  roomNumber?: string;
+  locationText?: string;
+  attachmentName?: string;
+  createdAt?: string;
+};
+
+type PageIssue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: Priority;
+  section: Section;
+  status: Status;
+  createdById: string;
+  locationText: string;
+  attachmentDataUrl?: string;
+  createdAt?: number;
+  comments: unknown[];
+};
 
 function statusLabel(s: Status) {
   if (s === "IN_PROGRESS") return "In progress";
@@ -19,9 +52,69 @@ function statusLabel(s: Status) {
   return "Open";
 }
 
-function creatorLabel(i: Issue) {
+function creatorLabel(i: PageIssue) {
   const c = (i.createdById ?? "").trim();
   return c.length ? c : "Unknown";
+}
+
+function getScore(i: PageIssue) {
+  return Array.isArray(i.comments) ? i.comments.length : 0;
+}
+
+function buildLocationText(issue: ApiIssue) {
+  if (issue.locationText?.trim()) return issue.locationText.trim();
+
+  const section = issue.section?.trim().toUpperCase();
+
+  if (section === "HOSTEL") {
+    const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
+    const parts = [
+      issue.hostelGender?.trim(),
+      block ? `Block ${block}` : "",
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  if (section === "CAMPUS") {
+    const parts = [
+      issue.campusBlock?.trim(),
+      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+    ].filter(Boolean);
+
+    return parts.join(", ");
+  }
+
+  return "";
+}
+
+function toPageIssue(issue: ApiIssue): PageIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : Date.now();
+
+  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as Priority;
+  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as Section;
+  const status = (issue.status?.trim().toUpperCase() || "OPEN") as Status;
+
+  return {
+    id: issue._id,
+    title: issue.title?.trim() || "(Untitled)",
+    description: issue.description?.trim() || "",
+    category: issue.category?.trim() || "General",
+    priority,
+    section,
+    status,
+    createdById: issue.createdByEmail?.trim() || "",
+    locationText: buildLocationText(issue),
+    attachmentDataUrl: issue.attachmentName?.trim()
+      ? issue.attachmentName.trim()
+      : "",
+    createdAt,
+    comments: [],
+  };
 }
 
 export default function IssuesPage() {
@@ -31,8 +124,7 @@ export default function IssuesPage() {
   const viewFromUrl: ViewMode = sp.get("view") === "board" ? "board" : "list";
 
   const [mounted, setMounted] = useState(false);
-  const [refreshTick, setRefreshTick] = useState(0);
-  const [issues, setIssues] = useState<Issue[]>([]);
+  const [issues, setIssues] = useState<PageIssue[]>([]);
   const [role, setRole] = useState<AppRole | null>(null);
 
   const [q, setQ] = useState("");
@@ -59,8 +151,39 @@ export default function IssuesPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    setIssues(getIssues());
-  }, [mounted, refreshTick]);
+
+    let ignore = false;
+
+    async function loadIssues() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load issues");
+        }
+
+        const mapped = Array.isArray(data.issues)
+          ? data.issues.map(toPageIssue)
+          : [];
+
+        if (!ignore) {
+          setIssues(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to load issues:", error);
+        if (!ignore) {
+          setIssues([]);
+        }
+      }
+    }
+
+    loadIssues();
+
+    return () => {
+      ignore = true;
+    };
+  }, [mounted]);
 
   useEffect(() => {
     if (!mounted || !isStudent) return;
@@ -80,8 +203,23 @@ export default function IssuesPage() {
   }, [mounted, isStudent]);
 
   useEffect(() => {
-    function handleWindowFocus() {
-      setIssues(getIssues());
+    if (!mounted) return;
+
+    async function handleWindowFocus() {
+      try {
+        const res = await fetch("/api/issues", { cache: "no-store" });
+        const data = await res.json();
+
+        if (res.ok) {
+          const mapped = Array.isArray(data.issues)
+            ? data.issues.map(toPageIssue)
+            : [];
+          setIssues(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to refresh issues:", error);
+      }
+
       setRole(getStoredRole());
       clearExpiredNotices();
       setNotices(getActiveNotices());
@@ -89,7 +227,7 @@ export default function IssuesPage() {
 
     window.addEventListener("focus", handleWindowFocus);
     return () => window.removeEventListener("focus", handleWindowFocus);
-  }, []);
+  }, [mounted]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -120,30 +258,25 @@ export default function IssuesPage() {
   const oneWeekAgo = useMemo(() => Date.now() - 7 * 24 * 60 * 60 * 1000, []);
 
   const activeIssues = useMemo(() => {
-    return issues.filter(
-      (i) =>
-        (i.reviewState ?? "PENDING") !== "REJECTED" &&
-        (i.status === "OPEN" || i.status === "IN_PROGRESS")
-    );
+    return issues.filter((i) => i.status === "OPEN" || i.status === "IN_PROGRESS");
   }, [issues]);
 
   const recentlyResolved = useMemo(() => {
     return issues
       .filter(
         (i) =>
-          (i.reviewState ?? "PENDING") !== "REJECTED" &&
           i.status === "RESOLVED" &&
-          typeof i.resolvedAt === "number" &&
-          i.resolvedAt >= oneWeekAgo
+          typeof i.createdAt === "number" &&
+          i.createdAt >= oneWeekAgo
       )
-      .sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
       .slice(0, 5);
   }, [issues, oneWeekAgo]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
 
-    const hitsQuery = (i: Issue) => {
+    const hitsQuery = (i: PageIssue) => {
       if (!query) return true;
       const hay =
         `${i.title ?? ""} ${i.description ?? ""} ${i.locationText ?? ""} ${i.category ?? ""} ${creatorLabel(i)}`.toLowerCase();
@@ -179,6 +312,26 @@ export default function IssuesPage() {
     return arr;
   }, [activeIssues, q, status, priority, section, category, creator, sort]);
 
+  async function refresh() {
+    try {
+      const res = await fetch("/api/issues", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to refresh issues");
+      }
+
+      const mapped = Array.isArray(data.issues)
+        ? data.issues.map(toPageIssue)
+        : [];
+
+      setIssues(mapped);
+    } catch (error) {
+      console.error("Failed to refresh issues:", error);
+      setIssues([]);
+    }
+  }
+
   function clearFilters() {
     setQ("");
     setStatus("ALL");
@@ -187,10 +340,6 @@ export default function IssuesPage() {
     setCategory("ALL");
     setCreator("ALL");
     setSort("NEWEST");
-  }
-
-  function refresh() {
-    setRefreshTick((t) => t + 1);
   }
 
   if (!mounted) {
@@ -278,7 +427,7 @@ export default function IssuesPage() {
           ) : viewFromUrl === "board" ? (
             <>
               <div className="mt-6">
-                <KanbanBoard issues={filtered} />
+                <KanbanBoard issues={filtered as never} />
               </div>
 
               {recentlyResolved.length > 0 ? (
@@ -460,7 +609,9 @@ export default function IssuesPage() {
                             <div className="truncate text-base font-semibold text-white/90">
                               {i.title || "(Untitled)"}
                             </div>
-                            <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
+                            <div className="mt-1 text-sm text-white/60">
+                              {i.locationText || "Location not provided"}
+                            </div>
                             <div className="mt-2 text-xs text-white/55">
                               {i.section} • {i.category} • by{" "}
                               <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
