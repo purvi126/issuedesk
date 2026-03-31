@@ -34,9 +34,10 @@ export async function GET() {
       .limit(50)
       .toArray();
 
-    const safeIssues = issues.map(serializeIssue);
-
-    return NextResponse.json({ ok: true, issues: safeIssues }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, issues: issues.map(serializeIssue) },
+      { status: 200 }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[issues GET] Failed:", err);
@@ -89,7 +90,6 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
-    const db = await getDb();
     const doc = {
       title: title.trim(),
       description: description.trim(),
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
+    const db = await getDb();
     const result = await db.collection(COLLECTION).insertOne(doc);
 
     return NextResponse.json(

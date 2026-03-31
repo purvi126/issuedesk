@@ -123,7 +123,6 @@ export async function PATCH(
       );
 
       const updatedIssue = await collection.findOne({ _id: issueId });
-
       if (!updatedIssue) {
         return NextResponse.json({ error: "Issue not found" }, { status: 404 });
       }
@@ -143,17 +142,12 @@ export async function PATCH(
       await collection.updateOne(
         { _id: issueId },
         {
-          $set: {
-            updatedAt: new Date(),
-          },
-          $push: {
-            comments: nextComment,
-          },
+          $set: { updatedAt: new Date() },
+          $push: { comments: nextComment },
         } as any
       );
 
       const updatedIssue = await collection.findOne({ _id: issueId });
-
       if (!updatedIssue) {
         return NextResponse.json({ error: "Issue not found" }, { status: 404 });
       }

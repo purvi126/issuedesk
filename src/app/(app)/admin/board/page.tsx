@@ -233,7 +233,6 @@ export default function AdminBoardPage() {
             </div>
           </div>
         )}
-
         {recentlyResolvedIssues.length > 0 ? (
           <div className="mt-8">
             <div className="mb-3">
