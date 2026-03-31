@@ -4,14 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-import {
-  addComment,
-  getIssue,
-  getScore,
-  toggleUpvote,
-  type Issue as StoreIssue,
-} from "@/lib/store";
-
 type ApiIssue = {
   _id: string;
   title?: string;
@@ -93,33 +85,6 @@ function buildLocationText(issue: ApiIssue) {
   return "";
 }
 
-function normalizeStoreIssue(issue: StoreIssue): DetailIssue {
-  return {
-    id: issue.id,
-    title: issue.title || "(Untitled)",
-    description: issue.description || "",
-    category: issue.category || "General",
-    priority: issue.priority,
-    section: issue.section,
-    status: issue.status,
-    reviewState: undefined,
-    createdById: issue.createdById || "",
-    locationText: issue.locationText || "",
-    attachmentDataUrl: issue.attachmentDataUrl || "",
-    createdAt: typeof issue.createdAt === "number" ? issue.createdAt : Date.now(),
-    updatedAt: undefined,
-    comments: Array.isArray(issue.comments)
-      ? issue.comments.map((c) => ({
-          id: c.id,
-          text: c.text,
-          createdAt: c.createdAt,
-        }))
-      : [],
-    upvoteCount: getScore(issue),
-    upvotedBy: Array.isArray(issue.upvotedBy) ? issue.upvotedBy : [],
-  };
-}
-
 function toUiIssue(issue: ApiIssue): DetailIssue {
   const createdAtValue =
     issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
@@ -180,7 +145,9 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
         ? issue.upvoteCount
         : 0,
     upvotedBy: Array.isArray(issue.upvotedBy)
-      ? issue.upvotedBy.filter((value): value is string => typeof value === "string")
+      ? issue.upvotedBy.filter(
+          (value): value is string => typeof value === "string"
+        )
       : [],
   };
 }
@@ -192,9 +159,7 @@ export default function IssueDetailsPage() {
 
   const [mounted, setMounted] = useState(false);
   const [issue, setIssue] = useState<DetailIssue | null>(null);
-  const [storeIssue, setStoreIssue] = useState<StoreIssue | null>(null);
   const [commentText, setCommentText] = useState("");
-  const [isMongoIssue, setIsMongoIssue] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
   const [togglingUpvote, setTogglingUpvote] = useState(false);
 
@@ -211,17 +176,6 @@ export default function IssueDetailsPage() {
 
     async function loadIssue() {
       try {
-        const localIssue = getIssue(params.id);
-
-        if (localIssue) {
-          if (!ignore) {
-            setStoreIssue(localIssue);
-            setIssue(normalizeStoreIssue(localIssue));
-            setIsMongoIssue(false);
-          }
-          return;
-        }
-
         const res = await fetch(`/api/issues/${params.id}`, {
           cache: "no-store",
         });
@@ -233,16 +187,12 @@ export default function IssueDetailsPage() {
         }
 
         if (!ignore) {
-          setStoreIssue(null);
           setIssue(toUiIssue(data.issue));
-          setIsMongoIssue(true);
         }
       } catch (error) {
         console.error("[issue details] load failed:", error);
         if (!ignore) {
-          setStoreIssue(null);
           setIssue(null);
-          setIsMongoIssue(false);
         }
       }
     }
@@ -256,63 +206,43 @@ export default function IssueDetailsPage() {
 
   const score = useMemo(() => {
     if (!issue) return 0;
-    if (isMongoIssue) return issue.upvoteCount ?? 0;
-    return storeIssue ? getScore(storeIssue) : 0;
-  }, [issue, isMongoIssue, storeIssue]);
+    return issue.upvoteCount ?? 0;
+  }, [issue]);
 
   const hasUpvoted = useMemo(() => {
     if (!issue || !voterId) return false;
-
-    if (isMongoIssue) {
-      return issue.upvotedBy.includes(voterId);
-    }
-
-    return !!storeIssue?.upvotedBy?.includes(voterId);
-  }, [issue, voterId, isMongoIssue, storeIssue]);
+    return issue.upvotedBy.includes(voterId);
+  }, [issue, voterId]);
 
   async function handleUpvote() {
-    if (!issue) return;
+    if (!issue || !voterId || togglingUpvote) return;
 
-    if (isMongoIssue) {
-      if (!voterId || togglingUpvote) return;
+    try {
+      setTogglingUpvote(true);
 
-      try {
-        setTogglingUpvote(true);
+      const res = await fetch(`/api/issues/${issue.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toggleUpvote: true,
+          voterId,
+        }),
+      });
 
-        const res = await fetch(`/api/issues/${issue.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            toggleUpvote: true,
-            voterId,
-          }),
-        });
+      const data = await res.json();
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data?.error || "Failed to toggle upvote");
-        }
-
-        setIssue(toUiIssue(data.issue));
-      } catch (error) {
-        console.error("[issue details] upvote failed:", error);
-        alert(error instanceof Error ? error.message : "Failed to toggle upvote");
-      } finally {
-        setTogglingUpvote(false);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to toggle upvote");
       }
 
-      return;
-    }
-
-    toggleUpvote(issue.id, voterId || "student@vit.ac.in");
-
-    const updated = getIssue(issue.id);
-    if (updated) {
-      setStoreIssue(updated);
-      setIssue(normalizeStoreIssue(updated));
+      setIssue(toUiIssue(data.issue));
+    } catch (error) {
+      console.error("[issue details] upvote failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to toggle upvote");
+    } finally {
+      setTogglingUpvote(false);
     }
   }
 
@@ -322,44 +252,31 @@ export default function IssueDetailsPage() {
     const text = commentText.trim();
     if (!text) return;
 
-    if (isMongoIssue) {
-      try {
-        setPostingComment(true);
+    try {
+      setPostingComment(true);
 
-        const res = await fetch(`/api/issues/${issue.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ commentText: text }),
-        });
+      const res = await fetch(`/api/issues/${issue.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ commentText: text }),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data?.error || "Failed to post comment");
-        }
-
-        setIssue(toUiIssue(data.issue));
-        setCommentText("");
-      } catch (error) {
-        console.error("[issue details] comment failed:", error);
-        alert(error instanceof Error ? error.message : "Failed to post comment");
-      } finally {
-        setPostingComment(false);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to post comment");
       }
-      return;
+
+      setIssue(toUiIssue(data.issue));
+      setCommentText("");
+    } catch (error) {
+      console.error("[issue details] comment failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to post comment");
+    } finally {
+      setPostingComment(false);
     }
-
-    addComment(issue.id, text);
-
-    const updated = getIssue(issue.id);
-    if (updated) {
-      setStoreIssue(updated);
-      setIssue(normalizeStoreIssue(updated));
-    }
-
-    setCommentText("");
   }
 
   if (!mounted) return null;
@@ -428,26 +345,28 @@ export default function IssueDetailsPage() {
             <div className="text-right">
               <button
                 onClick={handleUpvote}
-                disabled={(isMongoIssue && (!voterId || togglingUpvote)) || (!isMongoIssue && togglingUpvote)}
+                disabled={!voterId || togglingUpvote}
                 className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isMongoIssue
-                  ? togglingUpvote
-                    ? "Updating..."
-                    : hasUpvoted
-                    ? "▲ Remove upvote"
-                    : "▲ Upvote"
+                {togglingUpvote
+                  ? "Updating..."
+                  : hasUpvoted
+                  ? "▲ Remove upvote"
                   : "▲ Upvote"}
               </button>
 
-              <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
+              <div className="mt-3 text-4xl font-semibold text-white">
+                {score}
+              </div>
 
-              {isMongoIssue && !voterId ? (
+              {!voterId ? (
                 <div className="mt-2 text-xs text-white/50">Sign in to vote</div>
               ) : null}
 
-              {isMongoIssue && voterId && hasUpvoted ? (
-                <div className="mt-2 text-xs text-white/60">You upvoted this issue</div>
+              {voterId && hasUpvoted ? (
+                <div className="mt-2 text-xs text-white/60">
+                  You upvoted this issue
+                </div>
               ) : null}
             </div>
           </div>
