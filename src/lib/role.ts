@@ -13,16 +13,13 @@ export function getStoredRole(): AppRole | null {
 
   return null;
 }
-export type Issue = {
-  id: string;
-  title: string;
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
-  location?: string;
-  category?: string;
-  scope?: string;
-  resolvedAt?: number;
-};
 
 export function isRole(value: string | null): value is AppRole {
   return value === "STUDENT" || value === "TECH" || value === "ADMIN";
+}
+
+export function dashboardFor(role: AppRole): string {
+  if (role === "ADMIN") return "/admin/board";
+  if (role === "TECH") return "/tech/assigned";
+  return "/issues";
 }
