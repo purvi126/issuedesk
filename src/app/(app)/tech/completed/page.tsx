@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getStoredRole } from "@/lib/role";
 
 type Issue = {
   id: string;
@@ -27,16 +28,6 @@ type ApiIssue = {
   campusBlock?: string;
   roomNumber?: string;
 };
-
-function card(): React.CSSProperties {
-  return {
-    border: "1px solid var(--border)",
-    borderRadius: 16,
-    background: "var(--card)",
-    boxShadow: "var(--shadow)",
-    padding: 14,
-  };
-}
 
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
@@ -81,9 +72,16 @@ function toUiIssue(issue: ApiIssue): Issue {
 export default function TechCompletedPage() {
   const router = useRouter();
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const role = getStoredRole();
+
+    if (role !== "TECH") {
+      router.replace("/setup/role");
+      return;
+    }
+
     let ignore = false;
 
     async function loadIssues() {
@@ -95,75 +93,100 @@ export default function TechCompletedPage() {
           throw new Error(data?.error || "Failed to load issues");
         }
 
-        const mapped = Array.isArray(data.issues) ? data.issues.map(toUiIssue) : [];
+        const mapped: Issue[] = Array.isArray(data.issues)
+          ? data.issues.map((issue: ApiIssue) => toUiIssue(issue))
+          : [];
 
         if (!ignore) {
           setIssues(mapped);
-          setMounted(true);
+          setReady(true);
         }
       } catch (error) {
         console.error("[tech/completed] load failed:", error);
         if (!ignore) {
           setIssues([]);
-          setMounted(true);
+          setReady(true);
         }
       }
     }
 
-    loadIssues();
+    void loadIssues();
 
     function handleWindowFocus() {
-      loadIssues();
+      void loadIssues();
     }
 
     window.addEventListener("focus", handleWindowFocus);
+
     return () => {
       ignore = true;
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, []);
+  }, [router]);
 
-  const closed = useMemo(() => issues.filter((i) => i.status === "RESOLVED"), [issues]);
+  const closed = useMemo(
+    () => issues.filter((issue) => issue.status === "RESOLVED"),
+    [issues]
+  );
 
-  if (!mounted) {
+  if (!ready) {
     return (
-      <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-        <div style={{ color: "var(--muted)" }}>Loading…</div>
-      </div>
+      <main className="min-h-screen px-6 py-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-sm text-white/60">Loading...</div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: "26px auto", padding: 24, fontFamily: "system-ui" }}>
-      <h2 style={{ margin: 0, fontSize: 34, fontWeight: 1000 }}>Completed</h2>
-      <p style={{ marginTop: 10, color: "var(--muted)", fontWeight: 700 }}>
-        Closed issues (history).
-      </p>
-
-      {closed.length === 0 ? (
-        <div style={{ marginTop: 18, color: "var(--muted)" }}>No closed issues yet.</div>
-      ) : (
-        <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
-          {closed.map((i) => (
-            <button
-              key={i.id}
-              onClick={() => router.push(`/issues/${i.id}`)}
-              style={{ ...card(), textAlign: "left", cursor: "pointer" }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                <div style={{ fontWeight: 1000 }}>{i.title || "(Untitled)"}</div>
-                <div style={{ color: "var(--muted)", fontWeight: 900 }}>
-                  {i.priority} • {i.status}
-                </div>
-              </div>
-              <div style={{ marginTop: 6, color: "var(--muted)" }}>{i.locationText}</div>
-              <div style={{ marginTop: 10, color: "var(--muted)", fontWeight: 800 }}>
-                {i.section} • {i.category}
-              </div>
-            </button>
-          ))}
+    <main className="min-h-screen px-6 py-6">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-4xl font-semibold tracking-tight text-white">
+            Completed
+          </h1>
+          <p className="mt-2 text-sm text-white/60">
+            Closed issues history.
+          </p>
         </div>
-      )}
-    </div>
+
+        {closed.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/60">
+            No closed issues yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {closed.map((issue) => (
+              <button
+                key={issue.id}
+                onClick={() => router.push(`/issues/${issue.id}`)}
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-cyan-400/25 hover:bg-cyan-500/5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-base font-semibold text-white/90">
+                      {issue.title || "(Untitled)"}
+                    </div>
+                    <div className="mt-1 text-sm text-white/60">
+                      {issue.locationText || "Location not provided"}
+                    </div>
+                    <div className="mt-2 text-xs text-white/55">
+                      {issue.section} • {issue.category}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-right text-xs text-white/60">
+                    <div>
+                      {issue.priority} • {issue.status}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
