@@ -164,7 +164,12 @@ export default function AdminBoardPage() {
   }, []);
 
   const pendingIssues = useMemo(
-    () => issues.filter((issue) => (issue.reviewState ?? "PENDING") === "PENDING"),
+    () =>
+      issues.filter(
+        (issue) =>
+          (issue.reviewState ?? "PENDING") === "PENDING" &&
+          issue.status !== "RESOLVED"
+      ),
     [issues]
   );
 
@@ -179,7 +184,17 @@ export default function AdminBoardPage() {
   );
 
   const rejectedIssues = useMemo(
-    () => issues.filter((issue) => (issue.reviewState ?? "PENDING") === "REJECTED"),
+    () =>
+      issues.filter(
+        (issue) =>
+          (issue.reviewState ?? "PENDING") === "REJECTED" &&
+          issue.status !== "RESOLVED"
+      ),
+    [issues]
+  );
+  const recentlyResolvedIssues = useMemo(
+    () =>
+      issues.filter((issue) => issue.status === "RESOLVED"),
     [issues]
   );
 
@@ -193,6 +208,60 @@ export default function AdminBoardPage() {
   return (
     <main className="min-h-screen px-6 py-6">
       <div className="mx-auto max-w-7xl">
+        {view === "board" ? (
+          <div className="grid gap-4 xl:grid-cols-3">
+            <AdminColumn title="Pending review" items={pendingIssues} onUpdate={handleUpdateIssue} />
+            <AdminColumn title="Assigned to staff" items={assignedIssues} onUpdate={handleUpdateIssue} />
+            <AdminColumn title="Rejected" items={rejectedIssues} onUpdate={handleUpdateIssue} />
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div className="mb-4 text-sm font-semibold text-white/70">
+              Admin review list
+            </div>
+
+            <div className="space-y-2">
+              {visibleListIssues.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
+                  No issues found.
+                </div>
+              ) : (
+                visibleListIssues.map((issue) => (
+                  <AdminIssueRow key={issue.id} issue={issue} onUpdate={handleUpdateIssue} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {recentlyResolvedIssues.length > 0 ? (
+          <div className="mt-8">
+            <div className="mb-3">
+              <h2 className="text-lg font-semibold text-white/90">Resolved history</h2>
+              <p className="mt-1 text-sm text-white/55">Issues that are currently resolved.</p>
+            </div>
+
+            <div className="grid gap-3">
+              {recentlyResolvedIssues.map((issue) => (
+                <div
+                  key={`resolved-${issue.id}`}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-base font-semibold text-white/90">
+                        {issue.title}
+                      </div>
+                      <div className="mt-1 text-sm text-white/60">{issue.locationText}</div>
+                    </div>
+
+                    <div className="text-xs text-emerald-300">Resolved</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white">
@@ -316,13 +385,13 @@ function AdminIssueCard({
       <div className="mt-1 text-sm text-white/55">{issue.locationText}</div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.category}
         </span>
-        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.section}
         </span>
-        <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.priority}
         </span>
       </div>
