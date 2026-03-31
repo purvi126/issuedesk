@@ -79,6 +79,11 @@ function statusLabel(s: Status) {
     if (s === "RESOLVED") return "Resolved";
     return "Open";
 }
+function statusColor(s: Status) {
+    if (s === "IN_PROGRESS") return "text-amber-300";
+    if (s === "RESOLVED") return "text-emerald-300";
+    return "text-rose-300";
+}
 
 function creatorLabel(i: PageIssue) {
     const c = (i.createdById ?? "").trim();
@@ -747,7 +752,9 @@ export default function IssuesPageInner() {
                                                         </button>
 
                                                         <div className="mt-2">
-                                                            {i.priority} • {statusLabel(i.status)}
+                                                            <span className="text-white/65">{i.priority}</span>
+                                                            <span className="text-white/35"> • </span>
+                                                            <span className={statusColor(i.status)}>{statusLabel(i.status)}</span>
                                                         </div>
 
                                                         {!voterId ? (

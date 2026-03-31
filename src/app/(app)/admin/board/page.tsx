@@ -34,7 +34,17 @@ type ApiIssue = {
   roomNumber?: string;
   reviewState?: ReviewState;
 };
+function statusColor(status: Status) {
+  if (status === "IN_PROGRESS") return "text-amber-300";
+  if (status === "RESOLVED") return "text-emerald-300";
+  return "text-rose-300";
+}
 
+function reviewColor(reviewState: ReviewState) {
+  if (reviewState === "ASSIGNED") return "text-cyan-300";
+  if (reviewState === "REJECTED") return "text-rose-300";
+  return "text-amber-300";
+}
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
@@ -206,11 +216,10 @@ export default function AdminBoardPage() {
               <button
                 type="button"
                 onClick={() => setView("board")}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                  view === "board"
-                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                    : "text-white/70"
-                }`}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "board"
+                  ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                  : "text-white/70"
+                  }`}
               >
                 Board
               </button>
@@ -218,11 +227,10 @@ export default function AdminBoardPage() {
               <button
                 type="button"
                 onClick={() => setView("list")}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                  view === "list"
-                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                    : "text-white/70"
-                }`}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "list"
+                  ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                  : "text-white/70"
+                  }`}
               >
                 List
               </button>
@@ -319,8 +327,16 @@ function AdminIssueCard({
         </span>
       </div>
 
-      <div className="mt-3 text-xs text-white/55">
-        Review state: <span className="font-semibold text-white/75">{reviewState}</span>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-white/65">
+          {issue.priority}
+        </span>
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1">
+          <span className={statusColor(issue.status)}>{issue.status}</span>
+        </span>
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1">
+          <span className={reviewColor(reviewState)}>{reviewState}</span>
+        </span>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
