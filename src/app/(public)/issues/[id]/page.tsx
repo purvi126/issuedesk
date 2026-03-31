@@ -28,6 +28,11 @@ type ApiIssue = {
   locationText?: string;
   attachmentName?: string;
   createdAt?: string;
+  comments?: {
+    id?: string;
+    text?: string;
+    createdAt?: number;
+  }[];
 };
 
 type DetailComment = {
@@ -94,10 +99,10 @@ function normalizeStoreIssue(issue: Issue): DetailIssue {
     createdAt: typeof issue.createdAt === "number" ? issue.createdAt : Date.now(),
     comments: Array.isArray(issue.comments)
       ? issue.comments.map((c) => ({
-        id: c.id,
-        text: c.text,
-        createdAt: c.createdAt,
-      }))
+          id: c.id,
+          text: c.text,
+          createdAt: c.createdAt,
+        }))
       : [],
   };
 }
@@ -136,7 +141,14 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
       ? issue.attachmentName.trim()
       : "",
     createdAt,
-    comments: [],
+    comments: Array.isArray(issue.comments)
+      ? issue.comments.map((c, index) => ({
+          id: c.id || `${issue._id}-comment-${index}`,
+          text: c.text?.trim() || "",
+          createdAt:
+            typeof c.createdAt === "number" ? c.createdAt : Date.now(),
+        }))
+      : [],
   };
 }
 
@@ -149,6 +161,7 @@ export default function IssueDetailsPage() {
   const [storeIssue, setStoreIssue] = useState<Issue | null>(null);
   const [commentText, setCommentText] = useState("");
   const [isMongoIssue, setIsMongoIssue] = useState(false);
+  const [postingComment, setPostingComment] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -222,24 +235,38 @@ export default function IssueDetailsPage() {
     }
   }
 
-  function handleAddComment() {
+  async function handleAddComment() {
     if (!issue) return;
 
     const text = commentText.trim();
     if (!text) return;
 
     if (isMongoIssue) {
-      const nextComment: DetailComment = {
-        id: crypto.randomUUID(),
-        text,
-        createdAt: Date.now(),
-      };
+      try {
+        setPostingComment(true);
 
-      setIssue({
-        ...issue,
-        comments: [...issue.comments, nextComment],
-      });
-      setCommentText("");
+        const res = await fetch(`/api/issues/${issue.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ commentText: text }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to post comment");
+        }
+
+        setIssue(toUiIssue(data.issue));
+        setCommentText("");
+      } catch (error) {
+        console.error("[issue details] comment failed:", error);
+        alert(error instanceof Error ? error.message : "Failed to post comment");
+      } finally {
+        setPostingComment(false);
+      }
       return;
     }
 
@@ -368,17 +395,12 @@ export default function IssueDetailsPage() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleAddComment}
-                className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+                disabled={postingComment}
+                className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Post comment
+                {postingComment ? "Posting..." : "Post comment"}
               </button>
             </div>
-
-            {isMongoIssue ? (
-              <p className="mt-3 text-xs text-white/45">
-                Upvotes and persistent comments for Mongo issues are not wired yet.
-              </p>
-            ) : null}
           </div>
         </div>
       </div>

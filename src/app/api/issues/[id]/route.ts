@@ -4,6 +4,12 @@ import { getDb } from "@/lib/mongodb";
 
 const COLLECTION = "issues";
 
+type IssueComment = {
+    id: string;
+    text: string;
+    createdAt: number;
+};
+
 // GET /api/issues/[id]
 export async function GET(
     _req: NextRequest,
@@ -46,9 +52,10 @@ export async function PATCH(
         }
 
         const body = await req.json();
-        const { status, reviewState } = body as {
+        const { status, reviewState, commentText } = body as {
             status?: "OPEN" | "IN_PROGRESS" | "RESOLVED";
             reviewState?: "PENDING" | "ASSIGNED" | "REJECTED";
+            commentText?: string;
         };
 
         const allowedStatuses = ["OPEN", "IN_PROGRESS", "RESOLVED"];
@@ -91,14 +98,42 @@ export async function PATCH(
             updateDoc.reviewState = reviewState;
         }
 
+        const cleanComment =
+            typeof commentText === "string" ? commentText.trim() : "";
+
+        const db = await getDb();
+
+        if (cleanComment) {
+            const nextComment: IssueComment = {
+                id: crypto.randomUUID(),
+                text: cleanComment,
+                createdAt: Date.now(),
+            };
+
+            const commentUpdate = {
+                $set: updateDoc,
+                $push: { comments: nextComment },
+            } as any;
+
+            const result = await db.collection(COLLECTION).findOneAndUpdate(
+                { _id: new ObjectId(id) },
+                commentUpdate,
+                { returnDocument: "after" }
+            );
+
+            if (!result) {
+                return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+            }
+
+            return NextResponse.json({ ok: true, issue: result }, { status: 200 });
+        }
+
         if (!("status" in updateDoc) && !("reviewState" in updateDoc)) {
             return NextResponse.json(
                 { error: "No valid fields provided" },
                 { status: 400 }
             );
         }
-
-        const db = await getDb();
 
         const result = await db.collection(COLLECTION).findOneAndUpdate(
             { _id: new ObjectId(id) },
@@ -110,10 +145,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Issue not found" }, { status: 404 });
         }
 
-        return NextResponse.json(
-            { ok: true, issue: result },
-            { status: 200 }
-        );
+        return NextResponse.json({ ok: true, issue: result }, { status: 200 });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
         console.error("[issue PATCH by id] Failed:", message);
