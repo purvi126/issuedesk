@@ -3,13 +3,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-import {
-  addNotice,
-  clearExpiredNotices,
-  deleteNotice,
-  getAllNotices,
-  type Notice,
-} from "@/lib/notices";
+
+type Notice = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: number;
+  expiresAt: number;
+};
+
+type ApiNotice = {
+  _id: string;
+  title?: string;
+  body?: string;
+  createdAt?: string;
+  expiresAt?: string;
+};
+
+function toUiNotice(notice: ApiNotice): Notice {
+  return {
+    id: notice._id,
+    title: notice.title?.trim() || "(Untitled)",
+    body: notice.body?.trim() || "",
+    createdAt: notice.createdAt ? new Date(notice.createdAt).getTime() : 0,
+    expiresAt: notice.expiresAt ? new Date(notice.expiresAt).getTime() : 0,
+  };
+}
 
 export default function AdminNoticesPage() {
   const router = useRouter();
@@ -19,10 +38,26 @@ export default function AdminNoticesPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [durationHours, setDurationHours] = useState("24");
+  const [saving, setSaving] = useState(false);
 
-  function refreshNotices() {
-    clearExpiredNotices();
-    setNotices(getAllNotices());
+  async function refreshNotices() {
+    try {
+      const res = await fetch("/api/notices", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to load notices");
+      }
+
+      const mapped = Array.isArray(data.notices)
+        ? data.notices.map(toUiNotice)
+        : [];
+
+      setNotices(mapped);
+    } catch (error) {
+      console.error("[admin/notices] load failed:", error);
+      setNotices([]);
+    }
   }
 
   useEffect(() => {
@@ -33,11 +68,10 @@ export default function AdminNoticesPage() {
       return;
     }
 
-    refreshNotices();
-    setReady(true);
+    refreshNotices().finally(() => setReady(true));
   }, [router]);
 
-  function handleAddNotice() {
+  async function handleAddNotice() {
     const cleanTitle = title.trim();
     const cleanBody = body.trim();
     const hours = Number(durationHours);
@@ -45,21 +79,56 @@ export default function AdminNoticesPage() {
     if (!cleanTitle || !cleanBody) return;
     if (!Number.isFinite(hours) || hours <= 0) return;
 
-    addNotice({
-      title: cleanTitle,
-      body: cleanBody,
-      durationHours: hours,
-    });
+    try {
+      setSaving(true);
 
-    setTitle("");
-    setBody("");
-    setDurationHours("24");
-    refreshNotices();
+      const res = await fetch("/api/notices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: cleanTitle,
+          body: cleanBody,
+          durationHours: hours,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to add notice");
+      }
+
+      setTitle("");
+      setBody("");
+      setDurationHours("24");
+      await refreshNotices();
+    } catch (error) {
+      console.error("[admin/notices] add failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to add notice");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleDeleteNotice(id: string) {
-    deleteNotice(id);
-    refreshNotices();
+  async function handleDeleteNotice(id: string) {
+    try {
+      const res = await fetch(`/api/notices/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete notice");
+      }
+
+      await refreshNotices();
+    } catch (error) {
+      console.error("[admin/notices] delete failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete notice");
+    }
   }
 
   const activeNotices = useMemo(() => {
@@ -130,9 +199,10 @@ export default function AdminNoticesPage() {
               <button
                 type="button"
                 onClick={handleAddNotice}
-                className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-500/15"
+                disabled={saving}
+                className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-500/15 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Add notice
+                {saving ? "Adding..." : "Add notice"}
               </button>
             </div>
           </div>

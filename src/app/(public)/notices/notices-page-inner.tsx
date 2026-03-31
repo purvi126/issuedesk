@@ -1,8 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
+
+type Notice = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+type ApiNotice = {
+  _id: string;
+  title?: string;
+  body?: string;
+  createdAt?: string;
+  expiresAt?: string;
+};
+
+function toUiNotice(notice: ApiNotice): Notice {
+  return {
+    id: notice._id,
+    title: notice.title?.trim() || "(Untitled)",
+    body: notice.body?.trim() || "",
+    createdAt: notice.createdAt || "",
+    expiresAt: notice.expiresAt || "",
+  };
+}
 
 export default function NoticesPage() {
   const sp = useSearchParams();
@@ -11,27 +38,48 @@ export default function NoticesPage() {
   const { status } = useSession();
   const authed = status === "authenticated";
 
-  const demo = [
-    {
-      id: "N-001",
-      title: "Water supply maintenance",
-      body: "Block C will have a scheduled water shutdown from 2:00 PM – 4:00 PM today.",
-      tag: "Maintenance",
-      when: "Today",
-    },
-    {
-      id: "N-002",
-      title: "Internet downtime",
-      body: "Wi-Fi may be unstable near Library due to router replacement.",
-      tag: "Network",
-      when: "This week",
-    },
-  ];
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadNotices() {
+      try {
+        const res = await fetch("/api/notices", { cache: "no-store" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load notices");
+        }
+
+        if (!ignore) {
+          setNotices(Array.isArray(data.notices) ? data.notices.map(toUiNotice) : []);
+          setLoaded(true);
+        }
+      } catch (error) {
+        console.error("[public/notices] load failed:", error);
+        if (!ignore) {
+          setNotices([]);
+          setLoaded(true);
+        }
+      }
+    }
+
+    loadNotices();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   async function goGoogle() {
     await signIn("google", {
       callbackUrl: `/after-login?next=${encodeURIComponent(next)}`,
     });
+  }
+
+  function formatExpiry(expiresAt: string) {
+    return expiresAt ? new Date(expiresAt).toLocaleString() : "";
   }
 
   return (
@@ -72,36 +120,33 @@ export default function NoticesPage() {
         </div>
 
         <div className="mt-6 grid gap-3">
-          {demo.map((n) => (
-            <div
-              key={n.id}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-black">{n.title}</div>
-                  <div className="mt-1 text-xs font-bold text-[var(--muted)]">
-                    {n.tag} • {n.when}
-                  </div>
-                </div>
-                <div className="text-xs font-black text-[color:rgba(38,198,255,0.9)]">
-                  {n.id}
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm text-[var(--muted)] leading-6">{n.body}</p>
+          {!loaded ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4 text-sm text-[var(--muted)] font-bold">
+              Loading notices...
             </div>
-          ))}
-
-          {demo.length === 0 ? (
+          ) : notices.length === 0 ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4 text-sm text-[var(--muted)] font-bold">
               No notices right now.
             </div>
-          ) : null}
-        </div>
+          ) : (
+            notices.map((n) => (
+              <div
+                key={n.id}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] px-5 py-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black">{n.title}</div>
+                    <div className="mt-1 text-xs font-bold text-[var(--muted)]">
+                      Expires • {formatExpiry(n.expiresAt)}
+                    </div>
+                  </div>
+                </div>
 
-        <div className="mt-8 text-xs font-bold text-[var(--muted)]">
-          Tip: Admins will later create notices from their dashboard.
+                <p className="mt-3 text-sm text-[var(--muted)] leading-6">{n.body}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
