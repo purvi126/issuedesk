@@ -36,7 +36,8 @@ export type Issue = {
 
   upvoters: string[];
   downvoters: string[];
-
+  upvotedBy?: string[];
+  upvoteCount?: number;
   comments: { id: string; text: string; createdAt: number }[];
 };
 
@@ -185,7 +186,8 @@ function migrateIssue(raw: any): Issue {
 
     upvoters,
     downvoters,
-
+    upvotedBy: upvoters,
+    upvoteCount: upvoters.length,
     comments,
   };
 }
@@ -274,9 +276,10 @@ export function addIssue(input: CreateIssueInput): Issue {
 
     upvoters: [],
     downvoters: [],
+    upvotedBy: [],
+    upvoteCount: 0,
     comments: [],
   };
-
   const issues = read();
   issues.push(issue);
   write(issues);

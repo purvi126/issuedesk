@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import {
   addComment,
   getIssue,
   getScore,
   toggleUpvote,
-  type Issue,
+  type Issue as StoreIssue,
 } from "@/lib/store";
 
 type ApiIssue = {
@@ -19,6 +20,7 @@ type ApiIssue = {
   priority?: string;
   section?: string;
   status?: string;
+  reviewState?: string;
   createdByEmail?: string;
   hostelGender?: string;
   hostelName?: string;
@@ -27,7 +29,10 @@ type ApiIssue = {
   roomNumber?: string;
   locationText?: string;
   attachmentName?: string;
-  createdAt?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  upvoteCount?: number;
+  upvotedBy?: string[];
   comments?: {
     id?: string;
     text?: string;
@@ -49,11 +54,15 @@ type DetailIssue = {
   priority: "LOW" | "MED" | "HIGH";
   section: "HOSTEL" | "CAMPUS";
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
+  reviewState?: "PENDING" | "ASSIGNED" | "REJECTED";
   createdById: string;
   locationText: string;
   attachmentDataUrl?: string;
   createdAt?: number;
+  updatedAt?: number;
   comments: DetailComment[];
+  upvoteCount: number;
+  upvotedBy: string[];
 };
 
 function buildLocationText(issue: ApiIssue) {
@@ -84,7 +93,7 @@ function buildLocationText(issue: ApiIssue) {
   return "";
 }
 
-function normalizeStoreIssue(issue: Issue): DetailIssue {
+function normalizeStoreIssue(issue: StoreIssue): DetailIssue {
   return {
     id: issue.id,
     title: issue.title || "(Untitled)",
@@ -93,10 +102,12 @@ function normalizeStoreIssue(issue: Issue): DetailIssue {
     priority: issue.priority,
     section: issue.section,
     status: issue.status,
+    reviewState: undefined,
     createdById: issue.createdById || "",
     locationText: issue.locationText || "",
     attachmentDataUrl: issue.attachmentDataUrl || "",
     createdAt: typeof issue.createdAt === "number" ? issue.createdAt : Date.now(),
+    updatedAt: undefined,
     comments: Array.isArray(issue.comments)
       ? issue.comments.map((c) => ({
           id: c.id,
@@ -104,14 +115,21 @@ function normalizeStoreIssue(issue: Issue): DetailIssue {
           createdAt: c.createdAt,
         }))
       : [],
+    upvoteCount: getScore(issue),
+    upvotedBy: Array.isArray(issue.upvotedBy) ? issue.upvotedBy : [],
   };
 }
 
 function toUiIssue(issue: ApiIssue): DetailIssue {
-  const createdAt =
+  const createdAtValue =
     issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
       ? new Date(issue.createdAt).getTime()
       : Date.now();
+
+  const updatedAtValue =
+    issue.updatedAt && !Number.isNaN(new Date(issue.updatedAt).getTime())
+      ? new Date(issue.updatedAt).getTime()
+      : undefined;
 
   const priority = (issue.priority?.trim().toUpperCase() || "LOW") as
     | "LOW"
@@ -127,6 +145,12 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
     | "IN_PROGRESS"
     | "RESOLVED";
 
+  const reviewState = issue.reviewState?.trim().toUpperCase() as
+    | "PENDING"
+    | "ASSIGNED"
+    | "REJECTED"
+    | undefined;
+
   return {
     id: issue._id,
     title: issue.title?.trim() || "(Untitled)",
@@ -135,12 +159,14 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
     priority,
     section,
     status,
+    reviewState,
     createdById: issue.createdByEmail?.trim() || "",
     locationText: buildLocationText(issue),
     attachmentDataUrl: issue.attachmentName?.trim()
       ? issue.attachmentName.trim()
       : "",
-    createdAt,
+    createdAt: createdAtValue,
+    updatedAt: updatedAtValue,
     comments: Array.isArray(issue.comments)
       ? issue.comments.map((c, index) => ({
           id: c.id || `${issue._id}-comment-${index}`,
@@ -149,19 +175,30 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
             typeof c.createdAt === "number" ? c.createdAt : Date.now(),
         }))
       : [],
+    upvoteCount:
+      typeof issue.upvoteCount === "number" && issue.upvoteCount >= 0
+        ? issue.upvoteCount
+        : 0,
+    upvotedBy: Array.isArray(issue.upvotedBy)
+      ? issue.upvotedBy.filter((value): value is string => typeof value === "string")
+      : [],
   };
 }
 
 export default function IssueDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
 
   const [mounted, setMounted] = useState(false);
   const [issue, setIssue] = useState<DetailIssue | null>(null);
-  const [storeIssue, setStoreIssue] = useState<Issue | null>(null);
+  const [storeIssue, setStoreIssue] = useState<StoreIssue | null>(null);
   const [commentText, setCommentText] = useState("");
   const [isMongoIssue, setIsMongoIssue] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
+  const [togglingUpvote, setTogglingUpvote] = useState(false);
+
+  const voterId = session?.user?.email?.trim() || "";
 
   useEffect(() => {
     setMounted(true);
@@ -219,14 +256,58 @@ export default function IssueDetailsPage() {
 
   const score = useMemo(() => {
     if (!issue) return 0;
-    if (isMongoIssue) return issue.comments.length;
+    if (isMongoIssue) return issue.upvoteCount ?? 0;
     return storeIssue ? getScore(storeIssue) : 0;
   }, [issue, isMongoIssue, storeIssue]);
 
-  function handleUpvote() {
-    if (!issue || isMongoIssue) return;
+  const hasUpvoted = useMemo(() => {
+    if (!issue || !voterId) return false;
 
-    toggleUpvote(issue.id, "student@vit.ac.in");
+    if (isMongoIssue) {
+      return issue.upvotedBy.includes(voterId);
+    }
+
+    return !!storeIssue?.upvotedBy?.includes(voterId);
+  }, [issue, voterId, isMongoIssue, storeIssue]);
+
+  async function handleUpvote() {
+    if (!issue) return;
+
+    if (isMongoIssue) {
+      if (!voterId || togglingUpvote) return;
+
+      try {
+        setTogglingUpvote(true);
+
+        const res = await fetch(`/api/issues/${issue.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            toggleUpvote: true,
+            voterId,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to toggle upvote");
+        }
+
+        setIssue(toUiIssue(data.issue));
+      } catch (error) {
+        console.error("[issue details] upvote failed:", error);
+        alert(error instanceof Error ? error.message : "Failed to toggle upvote");
+      } finally {
+        setTogglingUpvote(false);
+      }
+
+      return;
+    }
+
+    toggleUpvote(issue.id, voterId || "student@vit.ac.in");
 
     const updated = getIssue(issue.id);
     if (updated) {
@@ -347,12 +428,27 @@ export default function IssueDetailsPage() {
             <div className="text-right">
               <button
                 onClick={handleUpvote}
-                disabled={isMongoIssue}
+                disabled={(isMongoIssue && (!voterId || togglingUpvote)) || (!isMongoIssue && togglingUpvote)}
                 className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                ▲ Upvote
+                {isMongoIssue
+                  ? togglingUpvote
+                    ? "Updating..."
+                    : hasUpvoted
+                    ? "▲ Remove upvote"
+                    : "▲ Upvote"
+                  : "▲ Upvote"}
               </button>
+
               <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
+
+              {isMongoIssue && !voterId ? (
+                <div className="mt-2 text-xs text-white/50">Sign in to vote</div>
+              ) : null}
+
+              {isMongoIssue && voterId && hasUpvoted ? (
+                <div className="mt-2 text-xs text-white/60">You upvoted this issue</div>
+              ) : null}
             </div>
           </div>
 

@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
                     : "";
 
         const db = await getDb();
-
         const doc = {
             title: title.trim(),
             description: description.trim(),
@@ -93,7 +92,12 @@ export async function POST(req: NextRequest) {
             createdByEmail: normalizedCreatedByEmail,
             createdById: normalizedCreatedByEmail,
             status: "OPEN",
+            reviewState: "PENDING",
+            comments: [],
+            upvoteCount: 0,
+            upvotedBy: [],
             createdAt: new Date(),
+            updatedAt: new Date(),
         };
 
         const result = await db.collection(COLLECTION).insertOne(doc);
