@@ -14,17 +14,26 @@ function AfterLoginInner() {
     const role = getStoredRole();
 
     if (!role) {
-      const setupTarget = safeNext ? `/setup/role?next=${encodeURIComponent(safeNext)}` : "/setup/role";
+      const setupTarget = safeNext
+        ? `/setup/role?next=${encodeURIComponent(safeNext)}`
+        : "/setup/role";
       router.replace(setupTarget);
       return;
     }
 
-    if (safeNext) {
-      router.replace(safeNext);
+    const isGenericIssuesTarget =
+      safeNext === "" ||
+      safeNext === "/" ||
+      safeNext === "/issues" ||
+      safeNext === "/issues?view=board" ||
+      safeNext === "/after-login";
+
+    if (isGenericIssuesTarget) {
+      router.replace(dashboardFor(role));
       return;
     }
 
-    router.replace(dashboardFor(role));
+    router.replace(safeNext);
   }, [sp, router]);
 
   return <div>Redirecting...</div>;
