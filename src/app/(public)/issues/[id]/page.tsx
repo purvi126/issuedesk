@@ -62,7 +62,11 @@ type DetailIssue = {
   upvoteCount: number;
   upvotedBy: string[];
 };
-
+function statusColor(status: IssueStatus) {
+  if (status === "IN_PROGRESS") return "text-amber-300";
+  if (status === "RESOLVED") return "text-emerald-300";
+  return "text-rose-300";
+}
 function toPriority(value?: string): IssuePriority {
   const normalized = value?.trim().toUpperCase();
   if (normalized === "MED") return "MED";
@@ -144,10 +148,10 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
     updatedAt: updatedAtValue,
     comments: Array.isArray(issue.comments)
       ? issue.comments.map((c, index) => ({
-          id: c.id || `${issue._id}-comment-${index}`,
-          text: c.text?.trim() || "",
-          createdAt: typeof c.createdAt === "number" ? c.createdAt : Date.now(),
-        }))
+        id: c.id || `${issue._id}-comment-${index}`,
+        text: c.text?.trim() || "",
+        createdAt: typeof c.createdAt === "number" ? c.createdAt : Date.now(),
+      }))
       : [],
     upvoteCount:
       typeof issue.upvoteCount === "number" && issue.upvoteCount >= 0
@@ -354,8 +358,14 @@ export default function IssueDetailsPage() {
           </button>
 
           <div className="flex items-center gap-2 text-xs">
+            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/70">
+              {issue.priority}
+            </span>
+            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1">
+              <span className={statusColor(issue.status)}>{issue.status}</span>
+            </span>
             <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
-              {issue.priority} • {issue.status} • Score {score}
+              Score {score}
             </span>
             {issue.reviewState ? (
               <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
@@ -398,8 +408,8 @@ export default function IssueDetailsPage() {
                 {togglingUpvote
                   ? "Updating..."
                   : hasUpvoted
-                  ? "▲ Remove upvote"
-                  : "▲ Upvote"}
+                    ? "▲ Remove upvote"
+                    : "▲ Upvote"}
               </button>
 
               <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
