@@ -50,9 +50,7 @@ export async function GET(
     }
 
     const db = await getDb();
-    const issue = await db
-      .collection(COLLECTION)
-      .findOne({ _id: new ObjectId(id) });
+    const issue = await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 
     if (!issue) {
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
@@ -113,7 +111,7 @@ export async function PATCH(
         ? currentUpvotedBy.filter((value) => value !== cleanVoterId)
         : [...currentUpvotedBy, cleanVoterId];
 
-      const updateResult = await collection.updateOne(
+      await collection.updateOne(
         { _id: issueId },
         {
           $set: {
@@ -123,10 +121,6 @@ export async function PATCH(
           },
         }
       );
-
-      if (!updateResult.matchedCount) {
-        return NextResponse.json({ error: "Issue not found" }, { status: 404 });
-      }
 
       const updatedIssue = await collection.findOne({ _id: issueId });
 
@@ -146,7 +140,7 @@ export async function PATCH(
         createdAt: Date.now(),
       };
 
-      const updateResult = await collection.updateOne(
+      await collection.updateOne(
         { _id: issueId },
         {
           $set: {
@@ -157,10 +151,6 @@ export async function PATCH(
           },
         } as any
       );
-
-      if (!updateResult.matchedCount) {
-        return NextResponse.json({ error: "Issue not found" }, { status: 404 });
-      }
 
       const updatedIssue = await collection.findOne({ _id: issueId });
 
