@@ -5,14 +5,19 @@ import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
 
 type ViewMode = "board" | "list";
+type ReviewState = "PENDING" | "ASSIGNED" | "REJECTED";
+type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+type IssueSection = "HOSTEL" | "CAMPUS";
+type IssuePriority = "LOW" | "MED" | "HIGH";
 
 type TechIssue = {
   id: string;
   title: string;
   category: string;
-  section: "HOSTEL" | "CAMPUS";
-  priority: "LOW" | "MED" | "HIGH";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
+  section: IssueSection;
+  priority: IssuePriority;
+  status: IssueStatus;
+  reviewState: ReviewState;
   locationText: string;
   createdAt?: number;
 };
@@ -24,6 +29,7 @@ type ApiIssue = {
   section?: string;
   priority?: string;
   status?: string;
+  reviewState?: string;
   hostelGender?: string;
   hostelName?: string;
   hostelBlock?: string;
@@ -35,10 +41,35 @@ type ApiIssue = {
 
 const RECENT_RESOLVED_MS = 7 * 24 * 60 * 60 * 1000;
 
+function toSection(value?: string): IssueSection {
+  return value?.trim().toUpperCase() === "CAMPUS" ? "CAMPUS" : "HOSTEL";
+}
+
+function toPriority(value?: string): IssuePriority {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "MED") return "MED";
+  if (normalized === "HIGH") return "HIGH";
+  return "LOW";
+}
+
+function toStatus(value?: string): IssueStatus {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
+  if (normalized === "RESOLVED") return "RESOLVED";
+  return "OPEN";
+}
+
+function toReviewState(value?: string): ReviewState {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "ASSIGNED") return "ASSIGNED";
+  if (normalized === "REJECTED") return "REJECTED";
+  return "PENDING";
+}
+
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
-  const section = issue.section?.trim().toUpperCase();
+  const section = toSection(issue.section);
 
   if (section === "HOSTEL") {
     const block = issue.hostelBlock?.trim() || issue.hostelName?.trim() || "";
@@ -51,39 +82,30 @@ function buildLocationText(issue: ApiIssue) {
     return parts.join(", ");
   }
 
-  if (section === "CAMPUS") {
-    const parts = [
-      issue.campusBlock?.trim(),
-      issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
-    ].filter(Boolean);
+  const parts = [
+    issue.campusBlock?.trim(),
+    issue.roomNumber?.trim() ? `Room ${issue.roomNumber.trim()}` : "",
+  ].filter(Boolean);
 
-    return parts.join(", ");
-  }
-
-  return "";
+  return parts.join(", ");
 }
 
 function toTechIssue(issue: ApiIssue): TechIssue {
+  const createdAt =
+    issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
+      ? new Date(issue.createdAt).getTime()
+      : undefined;
+
   return {
     id: issue._id,
     title: issue.title?.trim() || "(Untitled)",
     category: issue.category?.trim() || "General",
-    section: (issue.section?.trim().toUpperCase() || "HOSTEL") as
-      | "HOSTEL"
-      | "CAMPUS",
-    priority: (issue.priority?.trim().toUpperCase() || "LOW") as
-      | "LOW"
-      | "MED"
-      | "HIGH",
-    status: (issue.status?.trim().toUpperCase() || "OPEN") as
-      | "OPEN"
-      | "IN_PROGRESS"
-      | "RESOLVED",
+    section: toSection(issue.section),
+    priority: toPriority(issue.priority),
+    status: toStatus(issue.status),
+    reviewState: toReviewState(issue.reviewState),
     locationText: buildLocationText(issue),
-    createdAt:
-      issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
-        ? new Date(issue.createdAt).getTime()
-        : Date.now(),
+    createdAt,
   };
 }
 
@@ -105,8 +127,8 @@ export default function TechAssignedPage() {
         throw new Error(data?.error || "Failed to load issues");
       }
 
-      const mapped = Array.isArray(data.issues)
-        ? data.issues.map(toTechIssue)
+      const mapped: TechIssue[] = Array.isArray(data.issues)
+        ? data.issues.map((issue: ApiIssue) => toTechIssue(issue))
         : [];
 
       setIssues(mapped);
@@ -118,10 +140,7 @@ export default function TechAssignedPage() {
     }
   }
 
-  async function handleUpdateIssue(
-    id: string,
-    nextStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED"
-  ) {
+  async function handleUpdateIssue(id: string, nextStatus: IssueStatus) {
     try {
       const res = await fetch(`/api/issues/${id}`, {
         method: "PATCH",
@@ -140,7 +159,7 @@ export default function TechAssignedPage() {
       await refreshIssues();
     } catch (error) {
       console.error("[tech assigned] failed to update issue:", error);
-      alert("Failed to update issue status.");
+      alert(error instanceof Error ? error.message : "Failed to update issue status.");
     }
   }
 
@@ -152,13 +171,13 @@ export default function TechAssignedPage() {
       return;
     }
 
-    refreshIssues();
+    void refreshIssues();
     setReady(true);
   }, [router]);
 
   useEffect(() => {
     function handleWindowFocus() {
-      refreshIssues();
+      void refreshIssues();
     }
 
     window.addEventListener("focus", handleWindowFocus);
@@ -168,24 +187,29 @@ export default function TechAssignedPage() {
     };
   }, []);
 
-  const openIssues = useMemo(
-    () => issues.filter((issue) => issue.status === "OPEN"),
+  const assignedIssues = useMemo(
+    () => issues.filter((issue) => issue.reviewState === "ASSIGNED"),
     [issues]
   );
 
+  const openIssues = useMemo(
+    () => assignedIssues.filter((issue) => issue.status === "OPEN"),
+    [assignedIssues]
+  );
+
   const inProgressIssues = useMemo(
-    () => issues.filter((issue) => issue.status === "IN_PROGRESS"),
-    [issues]
+    () => assignedIssues.filter((issue) => issue.status === "IN_PROGRESS"),
+    [assignedIssues]
   );
 
   const recentlyResolvedIssues = useMemo(
     () =>
-      issues.filter((issue) => {
+      assignedIssues.filter((issue) => {
         if (issue.status !== "RESOLVED") return false;
-        if (!issue.createdAt) return false;
+        if (typeof issue.createdAt !== "number") return false;
         return Date.now() - issue.createdAt <= RECENT_RESOLVED_MS;
       }),
-    [issues]
+    [assignedIssues]
   );
 
   const visibleListIssues = useMemo(
@@ -204,14 +228,14 @@ export default function TechAssignedPage() {
               Staff Queue
             </h1>
             <p className="mt-2 text-sm text-white/60">
-              Work through active requests and recent closures.
+              Work through issues assigned by admin.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={refreshIssues}
+              onClick={() => void refreshIssues()}
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
             >
               {loading ? "Refreshing..." : "Refresh"}
@@ -248,27 +272,19 @@ export default function TechAssignedPage() {
         {view === "board" ? (
           <div className="grid gap-4 xl:grid-cols-3">
             <TechColumn title="Open" items={openIssues} onUpdate={handleUpdateIssue} />
-            <TechColumn
-              title="In progress"
-              items={inProgressIssues}
-              onUpdate={handleUpdateIssue}
-            />
-            <TechColumn
-              title="Recently resolved"
-              items={recentlyResolvedIssues}
-              onUpdate={handleUpdateIssue}
-            />
+            <TechColumn title="In progress" items={inProgressIssues} onUpdate={handleUpdateIssue} />
+            <TechColumn title="Recently resolved" items={recentlyResolvedIssues} onUpdate={handleUpdateIssue} />
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
             <div className="mb-4 text-sm font-semibold text-white/70">
-              Queue list
+              Assigned queue
             </div>
 
             <div className="space-y-2">
               {visibleListIssues.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
-                  No issues found.
+                  No assigned issues found.
                 </div>
               ) : (
                 visibleListIssues.map((issue) => (
@@ -294,7 +310,7 @@ function TechColumn({
 }: {
   title: string;
   items: TechIssue[];
-  onUpdate: (id: string, nextStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED") => void;
+  onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-black/20">
@@ -325,7 +341,7 @@ function TechIssueCard({
   onUpdate,
 }: {
   issue: TechIssue;
-  onUpdate: (id: string, nextStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED") => void;
+  onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
@@ -386,7 +402,7 @@ function TechIssueRow({
   onUpdate,
 }: {
   issue: TechIssue;
-  onUpdate: (id: string, nextStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED") => void;
+  onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
