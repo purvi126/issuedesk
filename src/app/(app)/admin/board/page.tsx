@@ -252,6 +252,18 @@ export default function AdminBoardPage() {
                         {issue.title}
                       </div>
                       <div className="mt-1 text-sm text-white/60">{issue.locationText}</div>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.category}
+                        </span>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.section}
+                        </span>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.priority}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="text-xs text-emerald-300">Resolved</div>
