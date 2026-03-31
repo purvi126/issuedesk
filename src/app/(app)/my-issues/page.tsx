@@ -93,7 +93,12 @@ export default function MyIssuesPage() {
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || status === "loading") return;
+
+    if (status !== "authenticated") {
+      router.replace("/login?next=/my-issues");
+      return;
+    }
 
     let ignore = false;
 
@@ -106,8 +111,8 @@ export default function MyIssuesPage() {
           throw new Error(data?.error || "Failed to load issues");
         }
 
-        const mapped = Array.isArray(data.issues)
-          ? data.issues.map(toUiIssue)
+        const mapped: UiIssue[] = Array.isArray(data.issues)
+          ? data.issues.map((issue: ApiIssue) => toUiIssue(issue))
           : [];
 
         if (!ignore) {
@@ -121,10 +126,10 @@ export default function MyIssuesPage() {
       }
     }
 
-    loadIssues();
+    void loadIssues();
 
     function handleWindowFocus() {
-      loadIssues();
+      void loadIssues();
     }
 
     window.addEventListener("focus", handleWindowFocus);
@@ -133,7 +138,7 @@ export default function MyIssuesPage() {
       ignore = true;
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [mounted]);
+  }, [mounted, status, router]);
 
   const currentUserId = (session?.user?.email ?? "").trim().toLowerCase();
 
@@ -145,6 +150,7 @@ export default function MyIssuesPage() {
   }, [issues, currentUserId]);
 
   if (!mounted || status === "loading") return null;
+  if (status !== "authenticated") return null;
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-8">
