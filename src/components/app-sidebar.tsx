@@ -17,9 +17,7 @@ function getRoleLabel(role: AppRole | null, signedIn: boolean) {
   if (role === "ADMIN") return "admin";
   if (role === "TECH") return "staff";
   return "student";
-}
-
-function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
+} function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
   if (!signedIn || !role) {
     return [
       { label: "Issues", href: "/issues" },
@@ -30,26 +28,26 @@ function getMainLinks(role: AppRole | null, signedIn: boolean): SidebarLink[] {
 
   if (role === "STUDENT") {
     return [
-      { label: "Issues", href: "/issues" },
+      { label: "All Issues", href: "/issues" },
       { label: "My Issues", href: "/my-issues" },
-      { label: "Raise Issue", href: "/new" },
+      { label: "Raise Issue", href: "/setup/section" },
     ];
   }
 
   if (role === "TECH") {
     return [
       { label: "Staff Queue", href: "/tech/assigned" },
+      { label: "Completed", href: "/tech/completed" },
       { label: "All Issues", href: "/issues" },
     ];
   }
 
   return [
     { label: "Admin Board", href: "/admin/board" },
-    { label: "All Issues", href: "/issues" },
     { label: "Notices", href: "/admin/notices" },
+    { label: "All Issues", href: "/issues" },
   ];
 }
-
 export default function AppSidebar() {
   const pathname = usePathname();
   const { status } = useSession();

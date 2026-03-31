@@ -552,7 +552,7 @@ export default function IssuesPageInner() {
                                 <div className="mt-8">
                                     <div className="mb-3">
                                         <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
-                                        <p className="mt-1 text-sm text-white/55">Resolved in the last 7 days.</p>
+                                        <p className="mt-1 text-sm text-white/55">Recently marked resolved.</p>
                                     </div>
 
                                     <div className="grid gap-3">
@@ -774,7 +774,7 @@ export default function IssuesPageInner() {
                                 <div className="mt-8">
                                     <div className="mb-3">
                                         <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
-                                        <p className="mt-1 text-sm text-white/55">Resolved in the last 7 days.</p>
+                                        <p className="mt-1 text-sm text-white/55">Recently marked resolved.</p>
                                     </div>
 
                                     <div className="grid gap-3">
