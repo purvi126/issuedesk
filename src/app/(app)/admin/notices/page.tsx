@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-
+import PageHeader from "@/components/page-header";
 type Notice = {
     id: string;
     title: string;
@@ -150,14 +150,10 @@ export default function AdminNoticesPage() {
     return (
         <main className="min-h-screen px-6 py-6">
             <div className="mx-auto max-w-6xl">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-semibold tracking-tight text-white">
-                        Notices
-                    </h1>
-                    <p className="mt-2 text-sm text-white/60">
-                        Create notices for students. Notices expire automatically.
-                    </p>
-                </div>
+                <PageHeader
+                    title="Notices"
+                    subtitle="Create notices for students. Notices expire automatically."
+                />
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                     <div className="grid gap-4">

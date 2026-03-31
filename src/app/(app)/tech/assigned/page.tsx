@@ -1,5 +1,5 @@
 "use client";
-
+import PageHeader from "@/components/page-header";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
@@ -232,50 +232,45 @@ export default function TechAssignedPage() {
     return (
         <main className="min-h-screen px-6 py-6">
             <div className="mx-auto max-w-7xl">
-                <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h1 className="text-4xl font-semibold tracking-tight text-white">
-                            Staff Queue
-                        </h1>
-                        <p className="mt-2 text-sm text-white/60">
-                            Work through issues assigned by admin.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() => void refreshIssues()}
-                            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
-                        >
-                            {loading ? "Refreshing..." : "Refresh"}
-                        </button>
-
-                        <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
+                <PageHeader
+                    title="Staff Queue"
+                    subtitle="Work through issues assigned by admin."
+                    actions={
+                        <>
                             <button
                                 type="button"
-                                onClick={() => setView("board")}
-                                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "board"
-                                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                                    : "text-white/70"
-                                    }`}
+                                onClick={() => void refreshIssues()}
+                                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
                             >
-                                Board
+                                {loading ? "Refreshing..." : "Refresh"}
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setView("list")}
-                                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "list"
-                                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                                    : "text-white/70"
-                                    }`}
-                            >
-                                List
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setView("board")}
+                                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "board"
+                                            ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                                            : "text-white/70"
+                                        }`}
+                                >
+                                    Board
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setView("list")}
+                                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "list"
+                                            ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                                            : "text-white/70"
+                                        }`}
+                                >
+                                    List
+                                </button>
+                            </div>
+                        </>
+                    }
+                />
 
                 {view === "board" ? (
                     <div className="grid gap-4 xl:grid-cols-3">

@@ -1,5 +1,5 @@
 "use client";
-
+import PageHeader from "@/components/page-header";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -546,56 +546,53 @@ export default function IssuesPageInner() {
 
             <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
                 <div className="mx-auto max-w-6xl">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                {isPrivileged ? "All Issues" : "Issues"}
-                            </h1>
-                            <p className="mt-1 text-sm text-white/60">
-                                {isStaff
-                                    ? "Browse active issues across campus."
-                                    : isAdmin
-                                        ? "Review active issues across the system."
-                                        : "Browse active issues, switch views, or raise a new one."}
-                            </p>
-                        </div>
+                    <PageHeader
+                        title={isPrivileged ? "All Issues" : "Issues"}
+                        subtitle={
+                            isStaff
+                                ? "Browse active issues across campus."
+                                : isAdmin
+                                    ? "Review active issues across the system."
+                                    : "Browse active issues, switch views, or raise a new one."
+                        }
+                        actions={
+                            <>
+                                <div className="flex h-12 rounded-xl border border-blue-400/25 bg-white/[0.04] p-1 shadow-sm">
+                                    <button
+                                        onClick={() => go("list")}
+                                        className={[
+                                            "h-10 rounded-lg px-5 text-sm font-semibold transition",
+                                            viewFromUrl === "list"
+                                                ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                                                : "text-white/65 hover:bg-white/5 hover:text-white",
+                                        ].join(" ")}
+                                    >
+                                        List
+                                    </button>
+                                    <button
+                                        onClick={() => go("board")}
+                                        className={[
+                                            "h-10 rounded-lg px-5 text-sm font-semibold transition",
+                                            viewFromUrl === "board"
+                                                ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                                                : "text-white/65 hover:bg-white/5 hover:text-white",
+                                        ].join(" ")}
+                                    >
+                                        Board
+                                    </button>
+                                </div>
 
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <div className="flex h-12 rounded-xl border border-blue-400/25 bg-white/[0.04] p-1 shadow-sm">
-                                <button
-                                    onClick={() => go("list")}
-                                    className={[
-                                        "h-10 rounded-lg px-5 text-sm font-semibold transition",
-                                        viewFromUrl === "list"
-                                            ? "border border-blue-400/40 bg-blue-500/20 text-white"
-                                            : "text-white/65 hover:bg-white/5 hover:text-white",
-                                    ].join(" ")}
-                                >
-                                    List
-                                </button>
-                                <button
-                                    onClick={() => go("board")}
-                                    className={[
-                                        "h-10 rounded-lg px-5 text-sm font-semibold transition",
-                                        viewFromUrl === "board"
-                                            ? "border border-blue-400/40 bg-blue-500/20 text-white"
-                                            : "text-white/65 hover:bg-white/5 hover:text-white",
-                                    ].join(" ")}
-                                >
-                                    Board
-                                </button>
-                            </div>
-
-                            {isStudent ? (
-                                <button
-                                    onClick={() => router.push("/setup/section")}
-                                    className="h-12 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"
-                                >
-                                    + New issue
-                                </button>
-                            ) : null}
-                        </div>
-                    </div>
+                                {isStudent ? (
+                                    <button
+                                        onClick={() => router.push("/setup/section")}
+                                        className="h-12 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700"
+                                    >
+                                        + New issue
+                                    </button>
+                                ) : null}
+                            </>
+                        }
+                    />
 
                     {activeIssues.length === 0 && recentlyResolved.length === 0 ? (
                         <div className="mt-6">

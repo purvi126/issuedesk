@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-
+import PageHeader from "@/components/page-header";
 type UiIssue = {
   id: string;
   title: string;
@@ -155,12 +155,10 @@ export default function MyIssuesPage() {
   return (
     <main className="min-h-screen px-4 py-6 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            My Issues
-          </h1>
-          <p className="mt-1 text-white/60">Track issues you created.</p>
-        </div>
+        <PageHeader
+          title="My Issues"
+          subtitle="Track issues you created."
+        />
 
         {myIssues.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-white/75">

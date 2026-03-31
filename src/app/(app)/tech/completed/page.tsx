@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
 import StatusBadge from "@/components/status-badge";
+import PageHeader from "@/components/page-header";
 type Issue = {
     id: string;
     title: string;
@@ -155,14 +156,10 @@ export default function TechCompletedPage() {
     return (
         <main className="min-h-screen px-6 py-6">
             <div className="mx-auto max-w-7xl">
-                <div className="mb-6">
-                    <h1 className="text-4xl font-semibold tracking-tight text-white">
-                        Completed
-                    </h1>
-                    <p className="mt-2 text-sm text-white/60">
-                        Closed issues history.
-                    </p>
-                </div>
+                <PageHeader
+                    title="Completed"
+                    subtitle="Closed issues history."
+                />
 
                 {closed.length === 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/60">
