@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getStoredRole, type AppRole } from "@/lib/role";
 import EmptyState from "@/components/empty-state";
@@ -10,7 +11,6 @@ import type { Status, Priority, Section } from "@/lib/store";
 
 type ViewMode = "list" | "board";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
-
 type ApiIssue = {
     _id: string;
     title?: string;
@@ -28,6 +28,9 @@ type ApiIssue = {
     locationText?: string;
     attachmentName?: string;
     createdAt?: string;
+    upvoteCount?: number;
+    upvotedBy?: string[];
+    comments?: unknown[];
 };
 
 type PageIssue = {
@@ -43,6 +46,8 @@ type PageIssue = {
     attachmentDataUrl?: string;
     createdAt?: number;
     comments: unknown[];
+    upvoteCount: number;
+    upvotedBy: string[];
 };
 type Notice = {
     id: string;
@@ -81,7 +86,7 @@ function creatorLabel(i: PageIssue) {
 }
 
 function getScore(i: PageIssue) {
-    return Array.isArray(i.comments) ? i.comments.length : 0;
+    return typeof i.upvoteCount === "number" ? i.upvoteCount : 0;
 }
 
 function buildLocationText(issue: ApiIssue) {
@@ -111,7 +116,6 @@ function buildLocationText(issue: ApiIssue) {
 
     return "";
 }
-
 function toPageIssue(issue: ApiIssue): PageIssue {
     const createdAt =
         issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
@@ -136,14 +140,21 @@ function toPageIssue(issue: ApiIssue): PageIssue {
             ? issue.attachmentName.trim()
             : "",
         createdAt,
-        comments: [],
+        comments: Array.isArray(issue.comments) ? issue.comments : [],
+        upvoteCount:
+            typeof issue.upvoteCount === "number" && issue.upvoteCount >= 0
+                ? issue.upvoteCount
+                : 0,
+        upvotedBy: Array.isArray(issue.upvotedBy)
+            ? issue.upvotedBy.filter((value): value is string => typeof value === "string")
+            : [],
     };
 }
 
 export default function IssuesPageInner() {
     const router = useRouter();
     const sp = useSearchParams();
-
+    const { data: session } = useSession();
     const viewFromUrl: ViewMode = sp.get("view") === "board" ? "board" : "list";
 
     const [mounted, setMounted] = useState(false);
@@ -159,7 +170,8 @@ export default function IssuesPageInner() {
     const [sort, setSort] = useState<SortMode>("NEWEST");
     const [showNotices, setShowNotices] = useState(false);
     const [notices, setNotices] = useState<Notice[]>([]);
-
+    const [togglingVoteId, setTogglingVoteId] = useState<string | null>(null);
+    const voterId = session?.user?.email?.trim() || "";
     const isStudent = role === "STUDENT";
     const isStaff = role === "TECH";
     const isAdmin = role === "ADMIN";
@@ -374,7 +386,45 @@ export default function IssuesPageInner() {
 
         return arr;
     }, [activeIssues, q, status, priority, section, category, creator, sort]);
+    async function handleToggleUpvote(issueId: string) {
+        if (!voterId) {
+            alert("Please sign in to upvote.");
+            router.push(`/login?next=/issues/${issueId}`);
+            return;
+        }
 
+        try {
+            setTogglingVoteId(issueId);
+
+            const res = await fetch(`/api/issues/${issueId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    toggleUpvote: true,
+                    voterId,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data?.error || "Failed to toggle upvote");
+            }
+
+            setIssues((prev) =>
+                prev.map((issue) =>
+                    issue.id === issueId ? toPageIssue(data.issue) : issue
+                )
+            );
+        } catch (error) {
+            console.error("Failed to toggle upvote:", error);
+            alert(error instanceof Error ? error.message : "Failed to toggle upvote");
+        } finally {
+            setTogglingVoteId(null);
+        }
+    }
     async function refresh() {
         try {
             const res = await fetch("/api/issues", { cache: "no-store" });
@@ -683,12 +733,28 @@ export default function IssuesPageInner() {
                                                     </div>
 
                                                     <div className="shrink-0 text-right text-xs text-white/60">
-                                                        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
-                                                            {getScore(i)}
-                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                void handleToggleUpvote(i.id);
+                                                            }}
+                                                            disabled={togglingVoteId === i.id}
+                                                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            title={!voterId ? "Sign in to upvote" : i.upvotedBy.includes(voterId) ? "Remove upvote" : "Upvote"}
+                                                        >
+                                                            ▲ {getScore(i)}
+                                                        </button>
+
                                                         <div className="mt-2">
                                                             {i.priority} • {statusLabel(i.status)}
                                                         </div>
+
+                                                        {!voterId ? (
+                                                            <div className="mt-1 text-[11px] text-white/45">Sign in to vote</div>
+                                                        ) : i.upvotedBy.includes(voterId) ? (
+                                                            <div className="mt-1 text-[11px] text-white/45">You upvoted</div>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             </button>
