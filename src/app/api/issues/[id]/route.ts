@@ -18,6 +18,25 @@ type PatchBody = {
   voterId?: string;
 };
 
+function serializeIssue(issue: any) {
+  return {
+    ...issue,
+    _id: issue._id?.toString?.() ?? "",
+    createdAt:
+      issue.createdAt instanceof Date
+        ? issue.createdAt.toISOString()
+        : issue.createdAt ?? null,
+    updatedAt:
+      issue.updatedAt instanceof Date
+        ? issue.updatedAt.toISOString()
+        : issue.updatedAt ?? null,
+    resolvedAt:
+      issue.resolvedAt instanceof Date
+        ? issue.resolvedAt.toISOString()
+        : issue.resolvedAt ?? null,
+  };
+}
+
 // GET /api/issues/[id]
 export async function GET(
   _req: NextRequest,
@@ -39,7 +58,7 @@ export async function GET(
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true, issue }, { status: 200 });
+    return NextResponse.json({ ok: true, issue: serializeIssue(issue) }, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[issue GET by id] Failed:", message);
@@ -75,15 +94,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
     }
 
-    // 1) Toggle upvote
     if (toggleUpvote) {
       const cleanVoterId = typeof voterId === "string" ? voterId.trim() : "";
 
       if (!cleanVoterId) {
-        return NextResponse.json(
-          { error: "voterId is required" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "voterId is required" }, { status: 400 });
       }
 
       const currentUpvotedBy = Array.isArray(existingIssue.upvotedBy)
@@ -119,12 +134,10 @@ export async function PATCH(
         return NextResponse.json({ error: "Issue not found" }, { status: 404 });
       }
 
-      return NextResponse.json({ ok: true, issue: updatedIssue }, { status: 200 });
+      return NextResponse.json({ ok: true, issue: serializeIssue(updatedIssue) }, { status: 200 });
     }
 
-    // 2) Add comment
-    const cleanComment =
-      typeof commentText === "string" ? commentText.trim() : "";
+    const cleanComment = typeof commentText === "string" ? commentText.trim() : "";
 
     if (cleanComment) {
       const nextComment: IssueComment = {
@@ -155,10 +168,9 @@ export async function PATCH(
         return NextResponse.json({ error: "Issue not found" }, { status: 404 });
       }
 
-      return NextResponse.json({ ok: true, issue: updatedIssue }, { status: 200 });
+      return NextResponse.json({ ok: true, issue: serializeIssue(updatedIssue) }, { status: 200 });
     }
 
-    // 3) Status / review state updates
     const updateDoc: {
       updatedAt: Date;
       status?: string;
@@ -170,10 +182,7 @@ export async function PATCH(
 
     if (status) {
       if (!allowedStatuses.includes(status)) {
-        return NextResponse.json(
-          { error: "Invalid status value" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
       }
 
       updateDoc.status = status;
@@ -182,20 +191,14 @@ export async function PATCH(
 
     if (reviewState) {
       if (!allowedReviewStates.includes(reviewState)) {
-        return NextResponse.json(
-          { error: "Invalid reviewState value" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid reviewState value" }, { status: 400 });
       }
 
       updateDoc.reviewState = reviewState;
     }
 
     if (!("status" in updateDoc) && !("reviewState" in updateDoc)) {
-      return NextResponse.json(
-        { error: "No valid fields provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No valid fields provided" }, { status: 400 });
     }
 
     const result = await collection.findOneAndUpdate(
@@ -208,7 +211,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Issue not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true, issue: result }, { status: 200 });
+    return NextResponse.json({ ok: true, issue: serializeIssue(result) }, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[issue PATCH by id] Failed:", message);

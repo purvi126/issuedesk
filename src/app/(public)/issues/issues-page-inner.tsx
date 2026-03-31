@@ -31,11 +31,13 @@ type ApiIssue = {
     upvoteCount?: number;
     upvotedBy?: string[];
     comments?: unknown[];
+    resolvedAt?: string | null;
 };
 
 type PageIssue = {
     id: string;
     title: string;
+    resolvedAt?: number;
     description: string;
     category: string;
     priority: Priority;
@@ -126,7 +128,10 @@ function toPageIssue(issue: ApiIssue): PageIssue {
         issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
             ? new Date(issue.createdAt).getTime()
             : Date.now();
-
+    const resolvedAt =
+        issue.resolvedAt && !Number.isNaN(new Date(issue.resolvedAt).getTime())
+            ? new Date(issue.resolvedAt).getTime()
+            : undefined;
     const priority = (issue.priority?.trim().toUpperCase() || "LOW") as Priority;
     const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as Section;
     const status = (issue.status?.trim().toUpperCase() || "OPEN") as Status;
@@ -145,6 +150,7 @@ function toPageIssue(issue: ApiIssue): PageIssue {
             ? issue.attachmentName.trim()
             : "",
         createdAt,
+        resolvedAt,
         comments: Array.isArray(issue.comments) ? issue.comments : [],
         upvoteCount:
             typeof issue.upvoteCount === "number" && issue.upvoteCount >= 0
@@ -346,10 +352,10 @@ export default function IssuesPageInner() {
             .filter(
                 (i) =>
                     i.status === "RESOLVED" &&
-                    typeof i.createdAt === "number" &&
-                    i.createdAt >= oneWeekAgo
+                    typeof i.resolvedAt === "number" &&
+                    i.resolvedAt >= oneWeekAgo
             )
-            .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+            .sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0))
             .slice(0, 5);
     }, [issues, oneWeekAgo]);
 

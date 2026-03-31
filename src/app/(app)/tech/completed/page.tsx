@@ -12,6 +12,7 @@ type Issue = {
     locationText: string;
     section: string;
     category: string;
+    resolvedAt?: number;
 };
 
 type ApiIssue = {
@@ -27,6 +28,7 @@ type ApiIssue = {
     hostelBlock?: string;
     campusBlock?: string;
     roomNumber?: string;
+    resolvedAt?: string | null;
 };
 function statusColor(status: string) {
     if (status === "IN_PROGRESS") return "text-amber-300";
@@ -70,6 +72,10 @@ function toUiIssue(issue: ApiIssue): Issue {
         locationText: buildLocationText(issue),
         section: issue.section?.trim() || "Unknown",
         category: issue.category?.trim() || "General",
+        resolvedAt:
+            issue.resolvedAt && !Number.isNaN(new Date(issue.resolvedAt).getTime())
+                ? new Date(issue.resolvedAt).getTime()
+                : undefined,
     };
 }
 
@@ -129,7 +135,10 @@ export default function TechCompletedPage() {
     }, [router]);
 
     const closed = useMemo(
-        () => issues.filter((issue) => issue.status === "RESOLVED"),
+        () =>
+            issues
+                .filter((issue) => issue.status === "RESOLVED")
+                .sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0)),
         [issues]
     );
 

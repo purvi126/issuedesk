@@ -20,6 +20,7 @@ type TechIssue = {
     reviewState: ReviewState;
     locationText: string;
     createdAt?: number;
+    resolvedAt?: number;
 };
 
 type ApiIssue = {
@@ -37,6 +38,7 @@ type ApiIssue = {
     roomNumber?: string;
     locationText?: string;
     createdAt?: string;
+    resolvedAt?: string | null;
 };
 
 const RECENT_RESOLVED_MS = 7 * 24 * 60 * 60 * 1000;
@@ -99,7 +101,10 @@ function toTechIssue(issue: ApiIssue): TechIssue {
         issue.createdAt && !Number.isNaN(new Date(issue.createdAt).getTime())
             ? new Date(issue.createdAt).getTime()
             : undefined;
-
+    const resolvedAt =
+        issue.resolvedAt && !Number.isNaN(new Date(issue.resolvedAt).getTime())
+            ? new Date(issue.resolvedAt).getTime()
+            : undefined;
     return {
         id: issue._id,
         title: issue.title?.trim() || "(Untitled)",
@@ -110,6 +115,7 @@ function toTechIssue(issue: ApiIssue): TechIssue {
         reviewState: toReviewState(issue.reviewState),
         locationText: buildLocationText(issue),
         createdAt,
+        resolvedAt,
     };
 }
 
@@ -210,8 +216,8 @@ export default function TechAssignedPage() {
         () =>
             assignedIssues.filter((issue) => {
                 if (issue.status !== "RESOLVED") return false;
-                if (typeof issue.createdAt !== "number") return false;
-                return Date.now() - issue.createdAt <= RECENT_RESOLVED_MS;
+                if (typeof issue.resolvedAt !== "number") return false;
+                return Date.now() - issue.resolvedAt <= RECENT_RESOLVED_MS;
             }),
         [assignedIssues]
     );
@@ -353,13 +359,13 @@ function TechIssueCard({
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.category}
                 </span>
-                <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.section}
                 </span>
-                <span className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.priority}
                 </span>
             </div>
