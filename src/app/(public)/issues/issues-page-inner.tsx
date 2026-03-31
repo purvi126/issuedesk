@@ -7,7 +7,7 @@ import { getStoredRole, type AppRole } from "@/lib/role";
 import EmptyState from "@/components/empty-state";
 import NoticesPopup from "@/components/notices-popup";
 import type { Status, Priority, Section } from "@/lib/store";
-
+import StatusBadge from "@/components/status-badge";
 type ViewMode = "list" | "board";
 type SortMode = "NEWEST" | "OLDEST" | "TOP";
 type ApiIssue = {
@@ -803,10 +803,8 @@ export default function IssuesPageInner() {
                                                             ▲ {getScore(i)}
                                                         </button>
 
-                                                        <div className="mt-2">
-                                                            <span className="text-white/65">{i.priority}</span>
-                                                            <span className="text-white/35"> • </span>
-                                                            <span className={statusColor(i.status)}>{statusLabel(i.status)}</span>
+                                                        <div className="mt-2 flex justify-end">
+                                                            <StatusBadge status={i.status} />
                                                         </div>
 
                                                         {!voterId ? (
@@ -848,8 +846,8 @@ export default function IssuesPageInner() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="shrink-0 text-right text-xs text-emerald-300">
-                                                        Resolved
+                                                    <div className="shrink-0">
+                                                        <StatusBadge status="RESOLVED" />
                                                     </div>
                                                 </div>
                                             </button>

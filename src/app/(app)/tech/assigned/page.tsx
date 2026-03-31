@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-
+import StatusBadge from "@/components/status-badge";
 type ViewMode = "board" | "list";
 type ReviewState = "PENDING" | "ASSIGNED" | "REJECTED";
 type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
@@ -369,8 +369,8 @@ function TechIssueCard({
                     {issue.priority}
                 </span>
             </div>
-            <div className="mt-3 text-xs">
-                <span className={statusColor(issue.status)}>{issue.status}</span>
+            <div className="mt-3">
+                <StatusBadge status={issue.status} />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
                 {issue.status === "OPEN" ? (
@@ -423,8 +423,8 @@ function TechIssueRow({
                         {issue.locationText || "Location not provided"}
                     </div>
                 </div>
-                <div className="mt-3 text-xs">
-                    <span className={statusColor(issue.status)}>{issue.status}</span>
+                <div className="mt-3">
+                    <StatusBadge status={issue.status} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {issue.status === "OPEN" ? (

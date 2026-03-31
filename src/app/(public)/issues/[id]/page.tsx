@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { getStoredRole, type AppRole } from "@/lib/role";
-
+import StatusBadge from "@/components/status-badge";
+import ReviewStateBadge from "@/components/review-state-badge";
 type ApiIssue = {
   _id: string;
   title?: string;
@@ -361,16 +362,12 @@ export default function IssueDetailsPage() {
             <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/70">
               {issue.priority}
             </span>
-            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1">
-              <span className={statusColor(issue.status)}>{issue.status}</span>
-            </span>
+            <StatusBadge status={issue.status} />
             <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
               Score {score}
             </span>
             {issue.reviewState ? (
-              <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
-                Review {issue.reviewState}
-              </span>
+              <ReviewStateBadge reviewState={issue.reviewState} />
             ) : null}
             <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
               ID {issue.id}

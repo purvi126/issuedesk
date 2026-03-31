@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
-
+import StatusBadge from "@/components/status-badge";
 type Issue = {
     id: string;
     title: string;
@@ -190,10 +190,8 @@ export default function TechCompletedPage() {
                                     </div>
 
                                     <div className="shrink-0 text-right text-xs text-white/60">
-                                        <div>
-                                            <span className="text-white/65">{issue.priority}</span>
-                                            <span className="text-white/35"> • </span>
-                                            <span className={statusColor(issue.status)}>{issue.status}</span>
+                                        <div className="flex justify-end">
+                                            <StatusBadge status="RESOLVED" />
                                         </div>
                                     </div>
                                 </div>

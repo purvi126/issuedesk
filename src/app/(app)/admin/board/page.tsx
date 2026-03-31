@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredRole } from "@/lib/role";
+import StatusBadge from "@/components/status-badge";
+import ReviewStateBadge from "@/components/review-state-badge";
 
 type ViewMode = "board" | "list";
 type ReviewState = "PENDING" | "ASSIGNED" | "REJECTED";
@@ -411,12 +413,8 @@ function AdminIssueCard({
         <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-white/65">
           {issue.priority}
         </span>
-        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1">
-          <span className={statusColor(issue.status)}>{issue.status}</span>
-        </span>
-        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1">
-          <span className={reviewColor(reviewState)}>{reviewState}</span>
-        </span>
+        <StatusBadge status={issue.status} />
+        <ReviewStateBadge reviewState={reviewState} />
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

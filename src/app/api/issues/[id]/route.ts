@@ -132,7 +132,15 @@ export async function PATCH(
 
     const cleanComment = typeof commentText === "string" ? commentText.trim() : "";
 
-    if (cleanComment) {
+    if (commentText !== undefined) {
+      if (!cleanComment) {
+        return NextResponse.json({ error: "Comment cannot be empty" }, { status: 400 });
+      }
+
+      if (cleanComment.length > 1000) {
+        return NextResponse.json({ error: "Comment is too long" }, { status: 400 });
+      }
+
       const nextComment: IssueComment = {
         id: crypto.randomUUID(),
         text: cleanComment,
