@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { getStoredRole, type AppRole } from "@/lib/role";
 
 type ApiIssue = {
   _id: string;
@@ -38,15 +39,20 @@ type DetailComment = {
   createdAt: number;
 };
 
+type IssuePriority = "LOW" | "MED" | "HIGH";
+type IssueSection = "HOSTEL" | "CAMPUS";
+type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+type ReviewState = "PENDING" | "ASSIGNED" | "REJECTED";
+
 type DetailIssue = {
   id: string;
   title: string;
   description: string;
   category: string;
-  priority: "LOW" | "MED" | "HIGH";
-  section: "HOSTEL" | "CAMPUS";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
-  reviewState?: "PENDING" | "ASSIGNED" | "REJECTED";
+  priority: IssuePriority;
+  section: IssueSection;
+  status: IssueStatus;
+  reviewState?: ReviewState;
   createdById: string;
   locationText: string;
   attachmentDataUrl?: string;
@@ -56,6 +62,32 @@ type DetailIssue = {
   upvoteCount: number;
   upvotedBy: string[];
 };
+
+function toPriority(value?: string): IssuePriority {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "MED") return "MED";
+  if (normalized === "HIGH") return "HIGH";
+  return "LOW";
+}
+
+function toSection(value?: string): IssueSection {
+  return value?.trim().toUpperCase() === "CAMPUS" ? "CAMPUS" : "HOSTEL";
+}
+
+function toStatus(value?: string): IssueStatus {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
+  if (normalized === "RESOLVED") return "RESOLVED";
+  return "OPEN";
+}
+
+function toReviewState(value?: string): ReviewState | undefined {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "ASSIGNED") return "ASSIGNED";
+  if (normalized === "REJECTED") return "REJECTED";
+  if (normalized === "PENDING") return "PENDING";
+  return undefined;
+}
 
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
@@ -96,48 +128,25 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
       ? new Date(issue.updatedAt).getTime()
       : undefined;
 
-  const priority = (issue.priority?.trim().toUpperCase() || "LOW") as
-    | "LOW"
-    | "MED"
-    | "HIGH";
-
-  const section = (issue.section?.trim().toUpperCase() || "HOSTEL") as
-    | "HOSTEL"
-    | "CAMPUS";
-
-  const status = (issue.status?.trim().toUpperCase() || "OPEN") as
-    | "OPEN"
-    | "IN_PROGRESS"
-    | "RESOLVED";
-
-  const reviewState = issue.reviewState?.trim().toUpperCase() as
-    | "PENDING"
-    | "ASSIGNED"
-    | "REJECTED"
-    | undefined;
-
   return {
     id: issue._id,
     title: issue.title?.trim() || "(Untitled)",
     description: issue.description?.trim() || "",
     category: issue.category?.trim() || "General",
-    priority,
-    section,
-    status,
-    reviewState,
+    priority: toPriority(issue.priority),
+    section: toSection(issue.section),
+    status: toStatus(issue.status),
+    reviewState: toReviewState(issue.reviewState),
     createdById: issue.createdByEmail?.trim() || "",
     locationText: buildLocationText(issue),
-    attachmentDataUrl: issue.attachmentName?.trim()
-      ? issue.attachmentName.trim()
-      : "",
+    attachmentDataUrl: issue.attachmentName?.trim() || "",
     createdAt: createdAtValue,
     updatedAt: updatedAtValue,
     comments: Array.isArray(issue.comments)
       ? issue.comments.map((c, index) => ({
           id: c.id || `${issue._id}-comment-${index}`,
           text: c.text?.trim() || "",
-          createdAt:
-            typeof c.createdAt === "number" ? c.createdAt : Date.now(),
+          createdAt: typeof c.createdAt === "number" ? c.createdAt : Date.now(),
         }))
       : [],
     upvoteCount:
@@ -145,9 +154,7 @@ function toUiIssue(issue: ApiIssue): DetailIssue {
         ? issue.upvoteCount
         : 0,
     upvotedBy: Array.isArray(issue.upvotedBy)
-      ? issue.upvotedBy.filter(
-          (value): value is string => typeof value === "string"
-        )
+      ? issue.upvotedBy.filter((value): value is string => typeof value === "string")
       : [],
   };
 }
@@ -158,15 +165,18 @@ export default function IssueDetailsPage() {
   const { data: session } = useSession();
 
   const [mounted, setMounted] = useState(false);
+  const [role, setRole] = useState<AppRole | null>(null);
   const [issue, setIssue] = useState<DetailIssue | null>(null);
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const [togglingUpvote, setTogglingUpvote] = useState(false);
+  const [updatingIssue, setUpdatingIssue] = useState(false);
 
   const voterId = session?.user?.email?.trim() || "";
 
   useEffect(() => {
     setMounted(true);
+    setRole(getStoredRole());
   }, []);
 
   useEffect(() => {
@@ -197,7 +207,7 @@ export default function IssueDetailsPage() {
       }
     }
 
-    loadIssue();
+    void loadIssue();
 
     return () => {
       ignore = true;
@@ -213,6 +223,9 @@ export default function IssueDetailsPage() {
     if (!issue || !voterId) return false;
     return issue.upvotedBy.includes(voterId);
   }, [issue, voterId]);
+
+  const isTech = role === "TECH";
+  const isAdmin = role === "ADMIN";
 
   async function handleUpvote() {
     if (!issue || !voterId || togglingUpvote) return;
@@ -279,6 +292,35 @@ export default function IssueDetailsPage() {
     }
   }
 
+  async function handlePatchIssue(patch: Partial<Pick<DetailIssue, "status" | "reviewState">>) {
+    if (!issue || updatingIssue) return;
+
+    try {
+      setUpdatingIssue(true);
+
+      const res = await fetch(`/api/issues/${issue.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(patch),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update issue");
+      }
+
+      setIssue(toUiIssue(data.issue));
+    } catch (error) {
+      console.error("[issue details] patch failed:", error);
+      alert(error instanceof Error ? error.message : "Failed to update issue");
+    } finally {
+      setUpdatingIssue(false);
+    }
+  }
+
   if (!mounted) return null;
 
   if (!issue) {
@@ -315,6 +357,11 @@ export default function IssueDetailsPage() {
             <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
               {issue.priority} • {issue.status} • Score {score}
             </span>
+            {issue.reviewState ? (
+              <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
+                Review {issue.reviewState}
+              </span>
+            ) : null}
             <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
               ID {issue.id}
             </span>
@@ -355,9 +402,7 @@ export default function IssueDetailsPage() {
                   : "▲ Upvote"}
               </button>
 
-              <div className="mt-3 text-4xl font-semibold text-white">
-                {score}
-              </div>
+              <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
 
               {!voterId ? (
                 <div className="mt-2 text-xs text-white/50">Sign in to vote</div>
@@ -377,6 +422,91 @@ export default function IssueDetailsPage() {
               {issue.description || "No description provided."}
             </p>
           </div>
+
+          {isTech ? (
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="text-sm font-semibold text-white/70">Staff actions</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {issue.status === "OPEN" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handlePatchIssue({ status: "IN_PROGRESS" })}
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    Start
+                  </button>
+                ) : null}
+
+                {issue.status === "IN_PROGRESS" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handlePatchIssue({ status: "RESOLVED" })}
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    Resolve
+                  </button>
+                ) : null}
+
+                {issue.status === "RESOLVED" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handlePatchIssue({ status: "OPEN" })}
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                  >
+                    Reopen
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {isAdmin ? (
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="text-sm font-semibold text-white/70">Admin actions</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {issue.reviewState !== "ASSIGNED" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handlePatchIssue({
+                        reviewState: "ASSIGNED",
+                        status: "OPEN",
+                      })
+                    }
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    Assign to staff
+                  </button>
+                ) : null}
+
+                {issue.reviewState !== "REJECTED" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handlePatchIssue({ reviewState: "REJECTED" })}
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                ) : null}
+
+                {issue.reviewState !== "PENDING" ? (
+                  <button
+                    type="button"
+                    onClick={() => void handlePatchIssue({ reviewState: "PENDING" })}
+                    disabled={updatingIssue}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
