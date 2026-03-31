@@ -1,4 +1,5 @@
 "use client";
+
 import PageHeader from "@/components/page-header";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,17 +37,7 @@ type ApiIssue = {
   roomNumber?: string;
   reviewState?: ReviewState;
 };
-function statusColor(status: Status) {
-  if (status === "IN_PROGRESS") return "text-amber-300";
-  if (status === "RESOLVED") return "text-emerald-300";
-  return "text-rose-300";
-}
 
-function reviewColor(reviewState: ReviewState) {
-  if (reviewState === "ASSIGNED") return "text-cyan-300";
-  if (reviewState === "REJECTED") return "text-rose-300";
-  return "text-amber-300";
-}
 function buildLocationText(issue: ApiIssue) {
   if (issue.locationText?.trim()) return issue.locationText.trim();
 
@@ -106,10 +97,7 @@ export default function AdminBoardPage() {
         throw new Error(data?.error || "Failed to load issues");
       }
 
-      const mapped = Array.isArray(data.issues)
-        ? data.issues.map(toUiIssue)
-        : [];
-
+      const mapped = Array.isArray(data.issues) ? data.issues.map(toUiIssue) : [];
       setIssues(mapped);
     } catch (error) {
       console.error("[admin/board] load failed:", error);
@@ -194,9 +182,9 @@ export default function AdminBoardPage() {
       ),
     [issues]
   );
-  const recentlyResolvedIssues = useMemo(
-    () =>
-      issues.filter((issue) => issue.status === "RESOLVED"),
+
+  const resolvedIssues = useMemo(
+    () => issues.filter((issue) => issue.status === "RESOLVED"),
     [issues]
   );
 
@@ -210,80 +198,13 @@ export default function AdminBoardPage() {
   return (
     <main className="min-h-screen px-6 py-6">
       <div className="mx-auto max-w-7xl">
-        {view === "board" ? (
-          <div className="grid gap-4 xl:grid-cols-3">
-            <AdminColumn title="Pending review" items={pendingIssues} onUpdate={handleUpdateIssue} />
-            <AdminColumn title="Assigned to staff" items={assignedIssues} onUpdate={handleUpdateIssue} />
-            <AdminColumn title="Rejected" items={rejectedIssues} onUpdate={handleUpdateIssue} />
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-            <div className="mb-4 text-sm font-semibold text-white/70">
-              Admin review list
-            </div>
+        <PageHeader
+          title="Admin Board"
+          subtitle="Review incoming issues and route them to staff or reject them."
+        />
 
-            <div className="space-y-2">
-              {visibleListIssues.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
-                  No issues found.
-                </div>
-              ) : (
-                visibleListIssues.map((issue) => (
-                  <AdminIssueRow key={issue.id} issue={issue} onUpdate={handleUpdateIssue} />
-                ))
-              )}
-            </div>
-          </div>
-        )}
-        {recentlyResolvedIssues.length > 0 ? (
-          <div className="mt-8">
-            <div className="mb-3">
-              <h2 className="text-lg font-semibold text-white/90">Resolved history</h2>
-              <p className="mt-1 text-sm text-white/55">Issues that are currently resolved.</p>
-            </div>
-
-            <div className="grid gap-3">
-              {recentlyResolvedIssues.map((issue) => (
-                <div
-                  key={`resolved-${issue.id}`}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold text-white/90">
-                        {issue.title}
-                      </div>
-                      <div className="mt-1 text-sm text-white/60">{issue.locationText}</div>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
-                          {issue.category}
-                        </span>
-                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
-                          {issue.section}
-                        </span>
-                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
-                          {issue.priority}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-emerald-300">Resolved</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-white">
-              Admin Board
-            </h1>
-            <p className="mt-2 text-sm text-white/60">
-              Review incoming issues and route them to staff or reject them.
-            </p>
-          </div>
+          <div />
 
           <div className="flex items-center gap-3">
             <button
@@ -298,10 +219,11 @@ export default function AdminBoardPage() {
               <button
                 type="button"
                 onClick={() => setView("board")}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "board"
-                  ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                  : "text-white/70"
-                  }`}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  view === "board"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
+                }`}
               >
                 Board
               </button>
@@ -309,10 +231,11 @@ export default function AdminBoardPage() {
               <button
                 type="button"
                 onClick={() => setView("list")}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "list"
-                  ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
-                  : "text-white/70"
-                  }`}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  view === "list"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
+                }`}
               >
                 List
               </button>
@@ -322,9 +245,21 @@ export default function AdminBoardPage() {
 
         {view === "board" ? (
           <div className="grid gap-4 xl:grid-cols-3">
-            <AdminColumn title="Pending review" items={pendingIssues} onUpdate={handleUpdateIssue} />
-            <AdminColumn title="Assigned to staff" items={assignedIssues} onUpdate={handleUpdateIssue} />
-            <AdminColumn title="Rejected" items={rejectedIssues} onUpdate={handleUpdateIssue} />
+            <AdminColumn
+              title="Pending review"
+              items={pendingIssues}
+              onUpdate={handleUpdateIssue}
+            />
+            <AdminColumn
+              title="Assigned to staff"
+              items={assignedIssues}
+              onUpdate={handleUpdateIssue}
+            />
+            <AdminColumn
+              title="Rejected"
+              items={rejectedIssues}
+              onUpdate={handleUpdateIssue}
+            />
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -339,12 +274,65 @@ export default function AdminBoardPage() {
                 </div>
               ) : (
                 visibleListIssues.map((issue) => (
-                  <AdminIssueRow key={issue.id} issue={issue} onUpdate={handleUpdateIssue} />
+                  <AdminIssueRow
+                    key={issue.id}
+                    issue={issue}
+                    onUpdate={handleUpdateIssue}
+                  />
                 ))
               )}
             </div>
           </div>
         )}
+
+        <div className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold text-white/90">Resolved history</h2>
+            <p className="mt-1 text-sm text-white/55">
+              Issues that are currently resolved.
+            </p>
+          </div>
+
+          {resolvedIssues.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-6 text-sm text-white/50">
+              No resolved issues yet.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {resolvedIssues.map((issue) => (
+                <div
+                  key={`resolved-${issue.id}`}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-base font-semibold text-white/90">
+                        {issue.title}
+                      </div>
+                      <div className="mt-1 text-sm text-white/60">
+                        {issue.locationText}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.category}
+                        </span>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.section}
+                        </span>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                          {issue.priority}
+                        </span>
+                      </div>
+                    </div>
+
+                    <StatusBadge status="RESOLVED" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
@@ -410,9 +398,6 @@ function AdminIssueCard({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-white/65">
-          {issue.priority}
-        </span>
         <StatusBadge status={issue.status} />
         <ReviewStateBadge reviewState={reviewState} />
       </div>
@@ -480,8 +465,9 @@ function AdminIssueRow({
         <div>
           <div className="text-base font-semibold text-white/90">{issue.title}</div>
           <div className="text-sm text-white/55">{issue.locationText}</div>
-          <div className="mt-1 text-xs text-white/55">
-            Review state: <span className="font-semibold text-white/75">{reviewState}</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <StatusBadge status={issue.status} />
+            <ReviewStateBadge reviewState={reviewState} />
           </div>
         </div>
 
