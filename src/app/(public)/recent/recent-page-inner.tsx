@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import EmptyState from "@/components/empty-state";
 import KanbanBoard from "@/components/kanban-board";
@@ -27,6 +28,9 @@ type ApiIssue = {
     locationText?: string;
     attachmentName?: string;
     createdAt?: string;
+    upvoteCount?: number;
+    upvotedBy?: string[];
+    comments?: unknown[];
 };
 
 type RecentIssue = {
@@ -42,6 +46,8 @@ type RecentIssue = {
     attachmentDataUrl?: string;
     createdAt?: number;
     comments: unknown[];
+    upvoteCount: number;
+    upvotedBy: string[];
 };
 
 function statusLabel(s: Status) {
@@ -56,8 +62,7 @@ function creatorLabel(i: RecentIssue) {
 }
 
 function getScore(i: RecentIssue) {
-    const comments = Array.isArray(i.comments) ? i.comments.length : 0;
-    return comments;
+    return typeof i.upvoteCount === "number" ? i.upvoteCount : 0;
 }
 
 function buildLocationText(issue: ApiIssue) {
@@ -112,17 +117,26 @@ function toUiIssue(issue: ApiIssue): RecentIssue {
             ? issue.attachmentName.trim()
             : "",
         createdAt,
-        comments: [],
+        comments: Array.isArray(issue.comments) ? issue.comments : [],
+        upvoteCount:
+            typeof issue.upvoteCount === "number" && issue.upvoteCount >= 0
+                ? issue.upvoteCount
+                : 0,
+        upvotedBy: Array.isArray(issue.upvotedBy)
+            ? issue.upvotedBy.filter((value): value is string => typeof value === "string")
+            : [],
     };
 }
 
 export default function RecentPageInner() {
     const router = useRouter();
     const sp = useSearchParams();
+    const { data: session } = useSession();
 
     const [mounted, setMounted] = useState(false);
     const [view, setView] = useState<ViewMode>("list");
     const [issues, setIssues] = useState<RecentIssue[]>([]);
+    const [togglingVoteId, setTogglingVoteId] = useState<string | null>(null);
 
     const [q, setQ] = useState("");
     const [status, setStatus] = useState<Status | "ALL">("ALL");
@@ -131,6 +145,8 @@ export default function RecentPageInner() {
     const [category, setCategory] = useState<string>("ALL");
     const [creator, setCreator] = useState<string>("ALL");
     const [sort, setSort] = useState<SortMode>("NEWEST");
+
+    const voterId = session?.user?.email?.trim() || "";
 
     useEffect(() => {
         setMounted(true);
@@ -271,6 +287,46 @@ export default function RecentPageInner() {
         }
     }
 
+    async function handleToggleUpvote(issueId: string) {
+        if (!voterId) {
+            alert("Please sign in to upvote.");
+            router.push(`/login?next=/issues/${issueId}`);
+            return;
+        }
+
+        try {
+            setTogglingVoteId(issueId);
+
+            const res = await fetch(`/api/issues/${issueId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    toggleUpvote: true,
+                    voterId,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data?.error || "Failed to toggle upvote");
+            }
+
+            setIssues((prev) =>
+                prev.map((issue) =>
+                    issue.id === issueId ? toUiIssue(data.issue) : issue
+                )
+            );
+        } catch (error) {
+            console.error("Failed to toggle upvote:", error);
+            alert(error instanceof Error ? error.message : "Failed to toggle upvote");
+        } finally {
+            setTogglingVoteId(null);
+        }
+    }
+
     if (!mounted) {
         return (
             <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
@@ -350,7 +406,7 @@ export default function RecentPageInner() {
                                         <input
                                             value={q}
                                             onChange={(e) => setQ(e.target.value)}
-                                            placeholder="Search title, location, creator…"
+                                            placeholder="Search title, location, creator..."
                                             className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                         />
                                     </div>
@@ -494,12 +550,28 @@ export default function RecentPageInner() {
                                                 </div>
 
                                                 <div className="shrink-0 text-right text-xs text-white/60">
-                                                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
-                                                        {getScore(i)}
-                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            void handleToggleUpvote(i.id);
+                                                        }}
+                                                        disabled={togglingVoteId === i.id}
+                                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        title={!voterId ? "Sign in to upvote" : i.upvotedBy.includes(voterId) ? "Remove upvote" : "Upvote"}
+                                                    >
+                                                        ▲ {getScore(i)}
+                                                    </button>
+
                                                     <div className="mt-2">
                                                         {i.priority} • {statusLabel(i.status)}
                                                     </div>
+
+                                                    {!voterId ? (
+                                                        <div className="mt-1 text-[11px] text-white/45">Sign in to vote</div>
+                                                    ) : i.upvotedBy.includes(voterId) ? (
+                                                        <div className="mt-1 text-[11px] text-white/45">You upvoted</div>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                         </button>
