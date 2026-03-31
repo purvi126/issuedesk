@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getStoredRole, type AppRole } from "@/lib/role";
 import EmptyState from "@/components/empty-state";
-import KanbanBoard from "@/components/kanban-board";
 import NoticesPopup from "@/components/notices-popup";
 import type { Status, Priority, Section } from "@/lib/store";
 
@@ -228,7 +227,70 @@ export default function IssuesPageInner() {
             ignore = true;
         };
     }, [mounted]);
+    function BoardColumn({
+        title,
+        items,
+        onOpen,
+        creatorLabel,
+        resolved = false,
+    }: {
+        title: string;
+        items: PageIssue[];
+        onOpen: (id: string) => void;
+        creatorLabel: (issue: PageIssue) => string;
+        resolved?: boolean;
+    }) {
+        return (
+            <section className="rounded-2xl border border-white/10 bg-black/20">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                    <div className="text-lg font-semibold text-white">{title}</div>
+                    <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
+                        {items.length}
+                    </div>
+                </div>
 
+                <div className="space-y-2 p-3">
+                    {items.length === 0 ? (
+                        <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
+                            No issues
+                        </div>
+                    ) : (
+                        items.map((i) => (
+                            <button
+                                key={i.id}
+                                onClick={() => onOpen(i.id)}
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="truncate text-base font-semibold text-white/90">
+                                            {i.title || "(Untitled)"}
+                                        </div>
+                                        <div className="mt-1 text-sm text-white/60">
+                                            {i.locationText || "Location not provided"}
+                                        </div>
+                                        <div className="mt-2 text-xs text-white/55">
+                                            {i.section} • {i.category} • by{" "}
+                                            <span className="font-semibold text-white/75">
+                                                {creatorLabel(i)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className={`shrink-0 text-right text-xs ${resolved ? "text-emerald-300" : "text-white/60"
+                                            }`}
+                                    >
+                                        {resolved ? "Resolved" : i.status === "IN_PROGRESS" ? "In progress" : "Open"}
+                                    </div>
+                                </div>
+                            </button>
+                        ))
+                    )}
+                </div>
+            </section>
+        );
+    }
     useEffect(() => {
         if (!mounted || !isStudent) return;
 
@@ -550,45 +612,29 @@ export default function IssuesPageInner() {
                         </div>
                     ) : viewFromUrl === "board" ? (
                         <>
-                            <div className="mt-6">
-                                <KanbanBoard issues={filtered as never} />
+                            <div className="mt-6 grid gap-4 xl:grid-cols-3">
+                                <BoardColumn
+                                    title="Open"
+                                    items={filtered.filter((i) => i.status === "OPEN")}
+                                    onOpen={(id) => router.push(`/issues/${id}`)}
+                                    creatorLabel={creatorLabel}
+                                />
+                                <BoardColumn
+                                    title="In progress"
+                                    items={filtered.filter((i) => i.status === "IN_PROGRESS")}
+                                    onOpen={(id) => router.push(`/issues/${id}`)}
+                                    creatorLabel={creatorLabel}
+                                />
+                                <BoardColumn
+                                    title="Recently resolved"
+                                    items={recentlyResolved}
+                                    onOpen={(id) => router.push(`/issues/${id}`)}
+                                    creatorLabel={creatorLabel}
+                                    resolved
+                                />
                             </div>
 
-                            {recentlyResolved.length > 0 ? (
-                                <div className="mt-8">
-                                    <div className="mb-3">
-                                        <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
-                                        <p className="mt-1 text-sm text-white/55">Recently marked resolved.</p>
-                                    </div>
 
-                                    <div className="grid gap-3">
-                                        {recentlyResolved.map((i) => (
-                                            <button
-                                                key={`resolved-${i.id}`}
-                                                onClick={() => router.push(`/issues/${i.id}`)}
-                                                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
-                                            >
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <div className="truncate text-base font-semibold text-white/90">
-                                                            {i.title || "(Untitled)"}
-                                                        </div>
-                                                        <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
-                                                        <div className="mt-2 text-xs text-white/55">
-                                                            {i.section} • {i.category} • by{" "}
-                                                            <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="shrink-0 text-right text-xs text-emerald-300">
-                                                        Resolved
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null}
                         </>
                     ) : (
                         <>
