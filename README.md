@@ -1,36 +1,295 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IssueDesk
 
-## Getting Started
+Campus issue reporting and tracking platform for students, staff, and admins.
 
-First, run the development server:
+IssueDesk is a role-based web app built for reporting campus problems, reviewing them, assigning them, tracking progress, and notifying users through one clean interface.
+
+---
+
+## 🚀 Features
+
+### Role-Based Access
+- **Students** can create issues, browse issues, comment, upvote, and track their own submissions.
+- **Tech/Staff** can manage assigned issues, update progress, resolve issues, and reopen them when needed.
+- **Admins** can review incoming reports, assign or reject issues, manage notices, and monitor resolved history.
+
+### Issue Workflow
+- Create and manage issues with categories, priorities, and locations
+- Review state support:
+  - `PENDING`
+  - `ASSIGNED`
+  - `REJECTED`
+- Status support:
+  - `OPEN`
+  - `IN_PROGRESS`
+  - `RESOLVED`
+
+### Persistent User Interaction
+- Comments are saved in MongoDB
+- Upvotes are saved in MongoDB
+- Data remains after refresh and reload
+
+### Notices System
+- Admin-managed notices
+- Student-facing notices popup
+- Stored through API and database
+
+### Email Support
+- Optional issue resolution email notifications using Resend
+
+### UI Consistency
+- Shared reusable components for badges, headers, and status display
+- Dark-themed consistent layout across all major views
+
+---
+
+## 🏗️ Project Structure
+
+```text
+/src/app                 Next.js App Router pages and API routes
+/src/components          Reusable UI components
+/src/lib                 Shared helpers and configuration
+/public                  Static assets
+```
+
+### Important Areas
+
+```text
+/app/(public)            Public and shared pages
+/app/(app)               Authenticated app flows
+/app/api/issues          Issue APIs
+/app/api/notices         Notice APIs
+```
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** Next.js App Router, React, Tailwind CSS
+- **Authentication:** NextAuth with Google Provider
+- **Database:** MongoDB Atlas
+- **Email:** Resend
+- **Hosting:** Vercel
+
+---
+
+## 📌 Main Routes
+
+### Public / Shared
+- `/` — Landing page
+- `/login` — Sign-in page
+- `/issues` — Public/shared issues list
+- `/issues/[id]` — Issue detail page
+
+### Setup
+- `/setup/role` — Role selection
+- `/setup/section` — Issue creation step
+- `/setup/location` — Location selection step
+
+### Student
+- `/my-issues` — Student issue history
+
+### Tech / Staff
+- `/tech/assigned` — Assigned issues
+- `/tech/completed` — Completed issues history
+
+### Admin
+- `/admin/board` — Admin board
+- `/admin/notices` — Notices management
+
+---
+
+## 🗂️ Data Summary
+
+Each issue may store:
+
+- `title`
+- `description`
+- `category`
+- `priority`
+- `section`
+- `locationText`
+- `createdByEmail`
+- `createdById`
+- `status`
+- `reviewState`
+- `comments`
+- `upvoteCount`
+- `upvotedBy`
+- `createdAt`
+- `updatedAt`
+- `resolvedAt`
+
+---
+
+## 🔌 API Overview
+
+### `/api/issues`
+- `GET` — Fetch recent issues
+- `POST` — Create a new issue
+
+### `/api/issues/[id]`
+- `GET` — Fetch a single issue
+- `PATCH` — Update status, review state, comments, and upvotes
+
+### `/api/notices`
+- Notice management routes
+
+### Patch capabilities include
+- update `status`
+- update `reviewState`
+- add `commentText`
+- `toggleUpvote`
+- store `voterId`
+
+---
+
+## 📧 Email Notifications
+
+IssueDesk supports optional email notifications when an issue is marked as resolved.
+
+### Provider
+- **Resend**
+
+### Related Environment Variables
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+
+---
+
+## 💻 Live Website
+
+Access the deployed site here:
+
+**https://issuedesk-ten.vercel.app**
+
+---
+
+## ⚙️ Local Development Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/purvi126/issuedesk.git
+cd issuedesk
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Create `.env.local`
+
+Add:
+
+```env
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_here
+
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+MONGODB_URI=your_mongodb_connection_string_here
+```
+
+### 4. Optional email variables
+
+```env
+RESEND_API_KEY=your_resend_api_key_here
+RESEND_FROM_EMAIL=onboarding@resend.dev
+```
+
+### 5. Run the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 6. Build before production push
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🌐 Deployment
 
-To learn more about Next.js, take a look at the following resources:
+The project is deployed on **Vercel**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Required production environment variables
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `MONGODB_URI`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Optional
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
 
-## Deploy on Vercel
+Make sure `NEXTAUTH_URL` matches the deployed domain.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ✅ Recommended Test Flow
+
+### Student
+- Sign in with Google
+- Create a new issue
+- Open issue detail page
+- Add a comment
+- Upvote an issue
+- Check `My Issues`
+- Verify notices popup
+
+### Tech / Staff
+- Open assigned queue
+- Move issue from `OPEN` to `IN_PROGRESS`
+- Mark it `RESOLVED`
+- Reopen it if needed
+- Check completed history
+
+### Admin
+- Review submitted issues
+- Assign an issue
+- Reject an issue
+- Reset review state
+- Manage notices
+- Check resolved history
+
+---
+
+## 📍 Current MVP Status
+
+IssueDesk currently includes:
+
+- Google sign-in
+- Role-based routing
+- MongoDB-backed issue creation
+- Persistent comments
+- Persistent upvotes
+- Notice management
+- Staff queue and completed history
+- Admin review board
+- Resolved history support
+- Shared UI components
+- Optional email notification support
+
+---
+
+## 🔧 Planned Improvements
+
+- Better mobile responsiveness
+- Toggleable sidebar
+- Stronger route protection
+- Cleaner email templates
+- More notification options
+
+---
+
+## 👤 Author
+
+Built and maintained by **Purvi**.
