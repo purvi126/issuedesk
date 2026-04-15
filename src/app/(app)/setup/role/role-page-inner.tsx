@@ -106,7 +106,7 @@ function ChoiceCard({
                     {title}
                 </div>
 
-                <div className="mt-3 max-w-[12ch] text-base leading-5 text-white/72">
+                <div className="mt-3 max-w-[12ch] text-base leading-7 text-white/72">
                     {subtitle}
                 </div>
             </div>
