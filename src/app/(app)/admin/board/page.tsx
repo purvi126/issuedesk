@@ -210,19 +210,19 @@ export default function AdminBoardPage() {
             <button
               type="button"
               onClick={refreshIssues}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:border-cyan-400/25 dark:hover:bg-cyan-500/5"
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
-            <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/5">
+            <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
               <button
                 type="button"
                 onClick={() => setView("board")}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   view === "board"
-                    ? "border border-cyan-300 bg-cyan-100 text-slate-900 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
-                    : "text-slate-600 dark:text-white/70"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
                 }`}
               >
                 Board
@@ -233,8 +233,8 @@ export default function AdminBoardPage() {
                 onClick={() => setView("list")}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   view === "list"
-                    ? "border border-cyan-300 bg-cyan-100 text-slate-900 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
-                    : "text-slate-600 dark:text-white/70"
+                    ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                    : "text-white/70"
                 }`}
               >
                 List
@@ -262,14 +262,14 @@ export default function AdminBoardPage() {
             />
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-black/20">
-            <div className="mb-4 text-sm font-semibold text-slate-600 dark:text-white/70">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div className="mb-4 text-sm font-semibold text-white/70">
               Admin review list
             </div>
 
             <div className="space-y-2">
               {visibleListIssues.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-white/50">
+                <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
                   No issues found.
                 </div>
               ) : (
@@ -287,14 +287,14 @@ export default function AdminBoardPage() {
 
         <div className="mt-8">
           <div className="mb-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white/90">Resolved history</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-white/55">
+            <h2 className="text-lg font-semibold text-white/90">Resolved history</h2>
+            <p className="mt-1 text-sm text-white/55">
               Issues that are currently resolved.
             </p>
           </div>
 
           {resolvedIssues.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:bg-black/20 dark:text-white/50">
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-6 text-sm text-white/50">
               No resolved issues yet.
             </div>
           ) : (
@@ -302,25 +302,25 @@ export default function AdminBoardPage() {
               {resolvedIssues.map((issue) => (
                 <div
                   key={`resolved-${issue.id}`}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]"
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-base font-semibold text-slate-900 dark:text-white/90">
+                      <div className="text-base font-semibold text-white/90">
                         {issue.title}
                       </div>
-                      <div className="mt-1 text-sm text-slate-600 dark:text-white/60">
+                      <div className="mt-1 text-sm text-white/60">
                         {issue.locationText}
                       </div>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                           {issue.category}
                         </span>
-                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                           {issue.section}
                         </span>
-                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                           {issue.priority}
                         </span>
                       </div>
@@ -348,17 +348,17 @@ function AdminColumn({
   onUpdate: (id: string, patch: Partial<Issue>) => void;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-black/20">
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-        <div className="text-lg font-semibold text-slate-900 dark:text-white">{title}</div>
-        <div className="rounded-xl border border-slate-200 px-3 py-1 text-sm text-slate-600 dark:border-white/10 dark:text-white/60">
+    <section className="rounded-2xl border border-white/10 bg-black/20">
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="text-lg font-semibold text-white">{title}</div>
+        <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
           {items.length}
         </div>
       </div>
 
       <div className="space-y-2 p-3">
         {items.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 px-4 py-5 text-sm text-slate-500 dark:border-white/10 dark:text-white/50">
+          <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
             No issues
           </div>
         ) : (
@@ -381,18 +381,18 @@ function AdminIssueCard({
   const reviewState = issue.reviewState ?? "PENDING";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="text-base font-semibold text-slate-900 dark:text-white/90">{issue.title}</div>
-      <div className="mt-1 text-sm text-slate-600 dark:text-white/55">{issue.locationText}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="text-base font-semibold text-white/90">{issue.title}</div>
+      <div className="mt-1 text-sm text-white/55">{issue.locationText}</div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.category}
         </span>
-        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.section}
         </span>
-        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+        <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
           {issue.priority}
         </span>
       </div>
@@ -412,7 +412,7 @@ function AdminIssueCard({
                 status: "OPEN",
               })
             }
-            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+            className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
           >
             Assign to staff
           </button>
@@ -426,7 +426,7 @@ function AdminIssueCard({
                 reviewState: "REJECTED",
               })
             }
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
           >
             Reject
           </button>
@@ -440,7 +440,7 @@ function AdminIssueCard({
                 reviewState: "PENDING",
               })
             }
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
           >
             Reset
           </button>
@@ -460,11 +460,11 @@ function AdminIssueRow({
   const reviewState = issue.reviewState ?? "PENDING";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="text-base font-semibold text-slate-900 dark:text-white/90">{issue.title}</div>
-          <div className="text-sm text-slate-600 dark:text-white/55">{issue.locationText}</div>
+          <div className="text-base font-semibold text-white/90">{issue.title}</div>
+          <div className="text-sm text-white/55">{issue.locationText}</div>
           <div className="mt-1 flex flex-wrap gap-2">
             <StatusBadge status={issue.status} />
             <ReviewStateBadge reviewState={reviewState} />
@@ -481,7 +481,7 @@ function AdminIssueRow({
                   status: "OPEN",
                 })
               }
-              className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+              className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
             >
               Assign to staff
             </button>
@@ -495,7 +495,7 @@ function AdminIssueRow({
                   reviewState: "REJECTED",
                 })
               }
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
             >
               Reject
             </button>
@@ -509,7 +509,7 @@ function AdminIssueRow({
                   reviewState: "PENDING",
                 })
               }
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
             >
               Reset
             </button>

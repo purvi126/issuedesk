@@ -43,9 +43,9 @@ type ApiIssue = {
 
 const RECENT_RESOLVED_MS = 7 * 24 * 60 * 60 * 1000;
 function statusColor(status: IssueStatus) {
-    if (status === "IN_PROGRESS") return "text-amber-700 dark:text-amber-300";
-    if (status === "RESOLVED") return "text-emerald-700 dark:text-emerald-300";
-    return "text-rose-700 dark:text-rose-300";
+    if (status === "IN_PROGRESS") return "text-amber-300";
+    if (status === "RESOLVED") return "text-emerald-300";
+    return "text-rose-300";
 }
 function toSection(value?: string): IssueSection {
     return value?.trim().toUpperCase() === "CAMPUS" ? "CAMPUS" : "HOSTEL";
@@ -240,18 +240,18 @@ export default function TechAssignedPage() {
                             <button
                                 type="button"
                                 onClick={() => void refreshIssues()}
-                                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:border-cyan-400/25 dark:hover:bg-cyan-500/5"
+                                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/85 hover:border-cyan-400/25 hover:bg-cyan-500/5"
                             >
                                 {loading ? "Refreshing..." : "Refresh"}
                             </button>
 
-                            <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/5">
+                            <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
                                 <button
                                     type="button"
                                     onClick={() => setView("board")}
                                     className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "board"
-                                            ? "border border-cyan-300 bg-cyan-100 text-slate-900 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
-                                            : "text-slate-600 dark:text-white/70"
+                                            ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                                            : "text-white/70"
                                         }`}
                                 >
                                     Board
@@ -261,8 +261,8 @@ export default function TechAssignedPage() {
                                     type="button"
                                     onClick={() => setView("list")}
                                     className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "list"
-                                            ? "border border-cyan-300 bg-cyan-100 text-slate-900 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
-                                            : "text-slate-600 dark:text-white/70"
+                                            ? "border border-cyan-400/30 bg-cyan-500/10 text-white"
+                                            : "text-white/70"
                                         }`}
                                 >
                                     List
@@ -279,14 +279,14 @@ export default function TechAssignedPage() {
                         <TechColumn title="Recently resolved" items={recentlyResolvedIssues} onUpdate={handleUpdateIssue} />
                     </div>
                 ) : (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-black/20">
-                        <div className="mb-4 text-sm font-semibold text-slate-600 dark:text-white/70">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <div className="mb-4 text-sm font-semibold text-white/70">
                             Assigned queue
                         </div>
 
                         <div className="space-y-2">
                             {visibleListIssues.length === 0 ? (
-                                <div className="rounded-2xl border border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-white/50">
+                                <div className="rounded-2xl border border-white/10 px-4 py-6 text-sm text-white/50">
                                     No assigned issues found.
                                 </div>
                             ) : (
@@ -316,17 +316,17 @@ function TechColumn({
     onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
     return (
-        <section className="rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-black/20">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                <div className="text-lg font-semibold text-slate-900 dark:text-white">{title}</div>
-                <div className="rounded-xl border border-slate-200 px-3 py-1 text-sm text-slate-600 dark:border-white/10 dark:text-white/60">
+        <section className="rounded-2xl border border-white/10 bg-black/20">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div className="text-lg font-semibold text-white">{title}</div>
+                <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
                     {items.length}
                 </div>
             </div>
 
             <div className="space-y-2 p-3">
                 {items.length === 0 ? (
-                    <div className="rounded-2xl border border-slate-200 px-4 py-5 text-sm text-slate-500 dark:border-white/10 dark:text-white/50">
+                    <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
                         No issues
                     </div>
                 ) : (
@@ -347,20 +347,20 @@ function TechIssueCard({
     onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
-            <div className="text-base font-semibold text-slate-900 dark:text-white/90">{issue.title}</div>
-            <div className="mt-1 text-sm text-slate-600 dark:text-white/55">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="text-base font-semibold text-white/90">{issue.title}</div>
+            <div className="mt-1 text-sm text-white/55">
                 {issue.locationText || "Location not provided"}
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.category}
                 </span>
-                <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.section}
                 </span>
-                <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
                     {issue.priority}
                 </span>
             </div>
@@ -372,7 +372,7 @@ function TechIssueCard({
                     <button
                         type="button"
                         onClick={() => onUpdate(issue.id, "IN_PROGRESS")}
-                        className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+                        className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
                     >
                         Start
                     </button>
@@ -382,7 +382,7 @@ function TechIssueCard({
                     <button
                         type="button"
                         onClick={() => onUpdate(issue.id, "RESOLVED")}
-                        className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+                        className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
                     >
                         Resolve
                     </button>
@@ -392,7 +392,7 @@ function TechIssueCard({
                     <button
                         type="button"
                         onClick={() => onUpdate(issue.id, "OPEN")}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
                     >
                         Reopen
                     </button>
@@ -410,11 +410,11 @@ function TechIssueRow({
     onUpdate: (id: string, nextStatus: IssueStatus) => void;
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <div className="text-base font-semibold text-slate-900 dark:text-white/90">{issue.title}</div>
-                    <div className="text-sm text-slate-600 dark:text-white/55">
+                    <div className="text-base font-semibold text-white/90">{issue.title}</div>
+                    <div className="text-sm text-white/55">
                         {issue.locationText || "Location not provided"}
                     </div>
                 </div>
@@ -426,7 +426,7 @@ function TechIssueRow({
                         <button
                             type="button"
                             onClick={() => onUpdate(issue.id, "IN_PROGRESS")}
-                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+                            className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
                         >
                             Start
                         </button>
@@ -436,7 +436,7 @@ function TechIssueRow({
                         <button
                             type="button"
                             onClick={() => onUpdate(issue.id, "RESOLVED")}
-                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
+                            className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white"
                         >
                             Resolve
                         </button>
@@ -446,7 +446,7 @@ function TechIssueRow({
                         <button
                             type="button"
                             onClick={() => onUpdate(issue.id, "OPEN")}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
                         >
                             Reopen
                         </button>

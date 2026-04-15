@@ -155,35 +155,35 @@ export default function AdminNoticesPage() {
                     subtitle="Create notices for students. Notices expire automatically."
                 />
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                     <div className="grid gap-4">
                         <div>
-                            <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-white/70">Title</div>
+                            <div className="mb-2 text-sm font-semibold text-white/70">Title</div>
                             <input
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="e.g. Water supply interruption in LH-C Block."
-                                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30"
+                                className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-cyan-400/40"
                             />
                         </div>
 
                         <div>
-                            <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-white/70">Body</div>
+                            <div className="mb-2 text-sm font-semibold text-white/70">Body</div>
                             <textarea
                                 value={body}
                                 onChange={(e) => setBody(e.target.value)}
                                 placeholder="e.g. Water will be unavailable in LH-C Block from 2:00 PM to 4:00 PM today. Please store water in advance."
                                 rows={4}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30"
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-cyan-400/40"
                             />
                         </div>
 
                         <div className="max-w-xs">
-                            <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-white/70">Expiry</div>
+                            <div className="mb-2 text-sm font-semibold text-white/70">Expiry</div>
                             <select
                                 value={durationHours}
                                 onChange={(e) => setDurationHours(e.target.value)}
-                                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-cyan-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-cyan-400/40"
                             >
                                 <option value="24">24 hours</option>
                                 <option value="72">3 days</option>
@@ -196,7 +196,7 @@ export default function AdminNoticesPage() {
                                 type="button"
                                 onClick={handleAddNotice}
                                 disabled={saving}
-                                className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm font-semibold text-cyan-700 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white dark:hover:bg-cyan-500/15"
+                                className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-white hover:bg-cyan-500/15 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {saving ? "Adding..." : "Add notice"}
                             </button>
@@ -206,11 +206,11 @@ export default function AdminNoticesPage() {
 
                 <div className="mt-8">
                     <div className="mb-3">
-                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white/90">Active notices</h2>
+                        <h2 className="text-lg font-semibold text-white/90">Active notices</h2>
                     </div>
 
                     {activeNotices.length === 0 ? (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/60">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
                             No active notices.
                         </div>
                     ) : (
@@ -218,15 +218,15 @@ export default function AdminNoticesPage() {
                             {activeNotices.map((notice) => (
                                 <div
                                     key={notice.id}
-                                    className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]"
+                                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
-                                            <div className="text-base font-semibold text-slate-900 dark:text-white/90">
+                                            <div className="text-base font-semibold text-white/90">
                                                 {notice.title}
                                             </div>
-                                            <div className="mt-2 text-sm text-slate-700 dark:text-white/70">{notice.body}</div>
-                                            <div className="mt-3 text-xs text-slate-500 dark:text-white/50">
+                                            <div className="mt-2 text-sm text-white/70">{notice.body}</div>
+                                            <div className="mt-3 text-xs text-white/50">
                                                 Expires: {formatExpiry(notice.expiresAt)}
                                             </div>
                                         </div>
@@ -234,7 +234,7 @@ export default function AdminNoticesPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteNotice(notice.id)}
-                                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85"
                                         >
                                             Delete
                                         </button>
@@ -248,22 +248,22 @@ export default function AdminNoticesPage() {
                 {expiredNotices.length > 0 ? (
                     <div className="mt-8">
                         <div className="mb-3">
-                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white/90">Expired notices</h2>
+                            <h2 className="text-lg font-semibold text-white/90">Expired notices</h2>
                         </div>
 
                         <div className="grid gap-3">
                             {expiredNotices.map((notice) => (
                                 <div
                                     key={notice.id}
-                                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70 dark:border-white/10 dark:bg-white/[0.02]"
+                                    className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 opacity-70"
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
-                                            <div className="text-base font-semibold text-slate-700 dark:text-white/80">
+                                            <div className="text-base font-semibold text-white/80">
                                                 {notice.title}
                                             </div>
-                                            <div className="mt-2 text-sm text-slate-600 dark:text-white/60">{notice.body}</div>
-                                            <div className="mt-3 text-xs text-slate-500 dark:text-white/45">
+                                            <div className="mt-2 text-sm text-white/60">{notice.body}</div>
+                                            <div className="mt-3 text-xs text-white/45">
                                                 Expired: {formatExpiry(notice.expiresAt)}
                                             </div>
                                         </div>
@@ -271,7 +271,7 @@ export default function AdminNoticesPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteNotice(notice.id)}
-                                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
+                                            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80"
                                         >
                                             Delete
                                         </button>

@@ -81,9 +81,9 @@ function statusLabel(s: Status) {
     return "Open";
 }
 function statusColor(s: Status) {
-    if (s === "IN_PROGRESS") return "text-amber-700 dark:text-amber-300";
-    if (s === "RESOLVED") return "text-emerald-700 dark:text-emerald-300";
-    return "text-rose-700 dark:text-rose-300";
+    if (s === "IN_PROGRESS") return "text-amber-300";
+    if (s === "RESOLVED") return "text-emerald-300";
+    return "text-rose-300";
 }
 
 function creatorLabel(i: PageIssue) {
@@ -241,17 +241,17 @@ export default function IssuesPageInner() {
         resolved?: boolean;
     }) {
         return (
-            <section className="rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-black/20">
-                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                    <div className="text-lg font-semibold text-slate-900 dark:text-white">{title}</div>
-                    <div className="rounded-xl border border-slate-200 px-3 py-1 text-sm text-slate-600 dark:border-white/10 dark:text-white/60">
+            <section className="rounded-2xl border border-white/10 bg-black/20">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                    <div className="text-lg font-semibold text-white">{title}</div>
+                    <div className="rounded-xl border border-white/10 px-3 py-1 text-sm text-white/60">
                         {items.length}
                     </div>
                 </div>
 
                 <div className="space-y-2 p-3">
                     {items.length === 0 ? (
-                        <div className="rounded-2xl border border-slate-200 px-4 py-5 text-sm text-slate-500 dark:border-white/10 dark:text-white/50">
+                        <div className="rounded-2xl border border-white/10 px-4 py-5 text-sm text-white/50">
                             No issues
                         </div>
                     ) : (
@@ -259,26 +259,26 @@ export default function IssuesPageInner() {
                             <button
                                 key={i.id}
                                 onClick={() => onOpen(i.id)}
-                                className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-blue-400/25 dark:hover:bg-blue-500/5"
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <div className="truncate text-base font-semibold text-slate-900 dark:text-white/90">
+                                        <div className="truncate text-base font-semibold text-white/90">
                                             {i.title || "(Untitled)"}
                                         </div>
-                                        <div className="mt-1 text-sm text-slate-600 dark:text-white/60">
+                                        <div className="mt-1 text-sm text-white/60">
                                             {i.locationText || "Location not provided"}
                                         </div>
-                                        <div className="mt-2 text-xs text-slate-500 dark:text-white/55">
+                                        <div className="mt-2 text-xs text-white/55">
                                             {i.section} • {i.category} • by{" "}
-                                            <span className="font-semibold text-slate-700 dark:text-white/75">
+                                            <span className="font-semibold text-white/75">
                                                 {creatorLabel(i)}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div
-                                        className={`shrink-0 text-right text-xs ${resolved ? "text-emerald-700 dark:text-emerald-300" : "text-slate-600 dark:text-white/60"
+                                        className={`shrink-0 text-right text-xs ${resolved ? "text-emerald-300" : "text-white/60"
                                             }`}
                                     >
                                         {resolved ? "Resolved" : i.status === "IN_PROGRESS" ? "In progress" : "Open"}
@@ -532,7 +532,7 @@ export default function IssuesPageInner() {
         return (
             <main className="min-h-[calc(100vh-64px)] px-4 py-8 sm:px-8">
                 <div className="mx-auto max-w-6xl">
-                    <div className="text-sm text-slate-600 dark:text-white/60">Loading issues...</div>
+                    <div className="text-sm text-white/60">Loading issues...</div>
                 </div>
             </main>
         );
@@ -557,14 +557,14 @@ export default function IssuesPageInner() {
                         }
                         actions={
                             <>
-                                <div className="flex h-12 rounded-xl border border-blue-200 bg-white p-1 shadow-sm dark:border-blue-400/25 dark:bg-white/[0.04]">
+                                <div className="flex h-12 rounded-xl border border-blue-400/25 bg-white/[0.04] p-1 shadow-sm">
                                     <button
                                         onClick={() => go("list")}
                                         className={[
                                             "h-10 rounded-lg px-5 text-sm font-semibold transition",
                                             viewFromUrl === "list"
-                                                ? "border border-blue-300 bg-blue-100 text-slate-900 dark:border-blue-400/40 dark:bg-blue-500/20 dark:text-white"
-                                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-white/65 dark:hover:bg-white/5 dark:hover:text-white",
+                                                ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                                                : "text-white/65 hover:bg-white/5 hover:text-white",
                                         ].join(" ")}
                                     >
                                         List
@@ -574,8 +574,8 @@ export default function IssuesPageInner() {
                                         className={[
                                             "h-10 rounded-lg px-5 text-sm font-semibold transition",
                                             viewFromUrl === "board"
-                                                ? "border border-blue-300 bg-blue-100 text-slate-900 dark:border-blue-400/40 dark:bg-blue-500/20 dark:text-white"
-                                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-white/65 dark:hover:bg-white/5 dark:hover:text-white",
+                                                ? "border border-blue-400/40 bg-blue-500/20 text-white"
+                                                : "text-white/65 hover:bg-white/5 hover:text-white",
                                         ].join(" ")}
                                     >
                                         Board
@@ -635,25 +635,25 @@ export default function IssuesPageInner() {
                         </>
                     ) : (
                         <>
-                            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+                            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                                 <div className="grid gap-4">
                                     <div className="grid gap-3 lg:grid-cols-6">
                                         <div className="lg:col-span-2">
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Search</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Search</div>
                                             <input
                                                 value={q}
                                                 onChange={(e) => setQ(e.target.value)}
                                                 placeholder="Search title, location, creator..."
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             />
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Priority</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Priority</div>
                                             <select
                                                 value={priority}
                                                 onChange={(e) => setPriority(e.target.value as Priority | "ALL")}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="ALL">All</option>
                                                 <option value="LOW">LOW</option>
@@ -663,11 +663,11 @@ export default function IssuesPageInner() {
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Section</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Section</div>
                                             <select
                                                 value={section}
                                                 onChange={(e) => setSection(e.target.value as Section | "ALL")}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="ALL">All</option>
                                                 <option value="HOSTEL">HOSTEL</option>
@@ -676,11 +676,11 @@ export default function IssuesPageInner() {
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Status</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Status</div>
                                             <select
                                                 value={status}
                                                 onChange={(e) => setStatus(e.target.value as Status | "ALL")}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="ALL">All</option>
                                                 <option value="OPEN">Open</option>
@@ -690,11 +690,11 @@ export default function IssuesPageInner() {
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Sort</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Sort</div>
                                             <select
                                                 value={sort}
                                                 onChange={(e) => setSort(e.target.value as SortMode)}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="NEWEST">Newest</option>
                                                 <option value="OLDEST">Oldest</option>
@@ -705,11 +705,11 @@ export default function IssuesPageInner() {
 
                                     <div className="grid gap-3 lg:grid-cols-3">
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Category</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Category</div>
                                             <select
                                                 value={category}
                                                 onChange={(e) => setCategory(e.target.value)}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="ALL">All</option>
                                                 {categories.map((c) => (
@@ -721,11 +721,11 @@ export default function IssuesPageInner() {
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-white/60">Created by</div>
+                                            <div className="mb-2 text-xs font-semibold text-white/60">Created by</div>
                                             <select
                                                 value={creator}
                                                 onChange={(e) => setCreator(e.target.value)}
-                                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
+                                                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
                                             >
                                                 <option value="ALL">All</option>
                                                 {creators.map((c) => (
@@ -740,22 +740,22 @@ export default function IssuesPageInner() {
                                         <div className="flex items-end justify-end gap-2">
                                             <button
                                                 onClick={clearFilters}
-                                                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10"
+                                                className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/75 hover:border-blue-400/30 hover:bg-blue-500/10"
                                             >
                                                 Clear
                                             </button>
                                             <button
                                                 onClick={refresh}
-                                                className="h-10 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/15"
+                                                className="h-10 rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
                                             >
                                                 Refresh
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="text-sm text-slate-500 dark:text-white/55">
-                                        Showing <span className="font-semibold text-slate-800 dark:text-white/80">{filtered.length}</span> of{" "}
-                                        <span className="font-semibold text-slate-800 dark:text-white/80">{activeIssues.length}</span>
+                                    <div className="text-sm text-white/55">
+                                        Showing <span className="font-semibold text-white/80">{filtered.length}</span> of{" "}
+                                        <span className="font-semibold text-white/80">{activeIssues.length}</span>
                                     </div>
                                 </div>
                             </div>
@@ -769,24 +769,24 @@ export default function IssuesPageInner() {
                                             <button
                                                 key={i.id}
                                                 onClick={() => router.push(`/issues/${i.id}`)}
-                                                className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-blue-400/25 dark:hover:bg-blue-500/5"
+                                                className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="min-w-0">
-                                                        <div className="truncate text-base font-semibold text-slate-900 dark:text-white/90">
+                                                        <div className="truncate text-base font-semibold text-white/90">
                                                             {i.title || "(Untitled)"}
                                                         </div>
-                                                        <div className="mt-1 text-sm text-slate-600 dark:text-white/60">
+                                                        <div className="mt-1 text-sm text-white/60">
                                                             {i.locationText || "Location not provided"}
                                                         </div>
-                                                        <div className="mt-2 text-xs text-slate-500 dark:text-white/55">
+                                                        <div className="mt-2 text-xs text-white/55">
                                                             {i.section} • {i.category} • by{" "}
-                                                            <span className="font-semibold text-slate-700 dark:text-white/75">{creatorLabel(i)}</span>
+                                                            <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
                                                             {i.attachmentDataUrl ? " • Attachment" : ""}
                                                         </div>
                                                     </div>
 
-                                                    <div className="shrink-0 text-right text-xs text-slate-600 dark:text-white/60">
+                                                    <div className="shrink-0 text-right text-xs text-white/60">
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -794,7 +794,7 @@ export default function IssuesPageInner() {
                                                                 void handleToggleUpvote(i.id);
                                                             }}
                                                             disabled={togglingVoteId === i.id}
-                                                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10"
+                                                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                                                             title={!voterId ? "Sign in to upvote" : i.upvotedBy.includes(voterId) ? "Remove upvote" : "Upvote"}
                                                         >
                                                             ▲ {getScore(i)}
@@ -805,9 +805,9 @@ export default function IssuesPageInner() {
                                                         </div>
 
                                                         {!voterId ? (
-                                                            <div className="mt-1 text-[11px] text-slate-500 dark:text-white/45">Sign in to vote</div>
+                                                            <div className="mt-1 text-[11px] text-white/45">Sign in to vote</div>
                                                         ) : i.upvotedBy.includes(voterId) ? (
-                                                            <div className="mt-1 text-[11px] text-slate-500 dark:text-white/45">You upvoted</div>
+                                                            <div className="mt-1 text-[11px] text-white/45">You upvoted</div>
                                                         ) : null}
                                                     </div>
                                                 </div>
@@ -820,8 +820,8 @@ export default function IssuesPageInner() {
                             {recentlyResolved.length > 0 ? (
                                 <div className="mt-8">
                                     <div className="mb-3">
-                                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white/90">Recently resolved</h2>
-                                        <p className="mt-1 text-sm text-slate-500 dark:text-white/55">Recently marked resolved.</p>
+                                        <h2 className="text-lg font-semibold text-white/90">Recently resolved</h2>
+                                        <p className="mt-1 text-sm text-white/55">Recently marked resolved.</p>
                                     </div>
 
                                     <div className="grid gap-3">
@@ -829,17 +829,17 @@ export default function IssuesPageInner() {
                                             <button
                                                 key={`resolved-${i.id}`}
                                                 onClick={() => router.push(`/issues/${i.id}`)}
-                                                className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-blue-400/25 dark:hover:bg-blue-500/5"
+                                                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-blue-400/25 hover:bg-blue-500/5"
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="min-w-0">
-                                                        <div className="truncate text-base font-semibold text-slate-900 dark:text-white/90">
+                                                        <div className="truncate text-base font-semibold text-white/90">
                                                             {i.title || "(Untitled)"}
                                                         </div>
-                                                        <div className="mt-1 text-sm text-slate-600 dark:text-white/60">{i.locationText}</div>
-                                                        <div className="mt-2 text-xs text-slate-500 dark:text-white/55">
+                                                        <div className="mt-1 text-sm text-white/60">{i.locationText}</div>
+                                                        <div className="mt-2 text-xs text-white/55">
                                                             {i.section} • {i.category} • by{" "}
-                                                            <span className="font-semibold text-slate-700 dark:text-white/75">{creatorLabel(i)}</span>
+                                                            <span className="font-semibold text-white/75">{creatorLabel(i)}</span>
                                                         </div>
                                                     </div>
 

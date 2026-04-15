@@ -34,12 +34,12 @@ export default function RolePageInner() {
     return (
         <main className="min-h-screen px-6 py-10">
             <div className="mx-auto max-w-4xl">
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl text-white">
                     Choose role
                 </h1>
-                <p className="mt-2 text-sm text-slate-600 dark:text-white/60">Select to continue.</p>
+                <p className="mt-2 text-sm text-white/60">Select to continue.</p>
 
-                <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.03] sm:p-6">
+                <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
                     <div className="grid gap-4 md:grid-cols-3">
                         <ChoiceCard
                             title="Student"
@@ -88,12 +88,12 @@ function ChoiceCard({
             className={[
                 "group h-full rounded-[26px] border p-6 text-left transition-all duration-200",
                 active
-                    ? "border-cyan-200 bg-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,0.04),0_10px_30px_rgba(15,23,42,0.08)] dark:border-cyan-400/30 dark:bg-cyan-500/[0.08] dark:shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_10px_30px_rgba(0,0,0,0.18)]"
-                    : "border-slate-200 bg-white hover:border-cyan-300 hover:bg-cyan-50 hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/[0.035] dark:hover:border-cyan-400/20 dark:hover:bg-white/[0.05]",
+                    ? "border-cyan-400/30 bg-cyan-500/[0.08] shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_10px_30px_rgba(0,0,0,0.18)]"
+                    : "border-white/10 bg-white/[0.035] hover:border-cyan-400/20 hover:bg-white/[0.05] hover:-translate-y-0.5",
             ].join(" ")}
         >
             <div className="flex flex-col items-start">
-                <div className="relative mb-5 flex h-28 w-28 items-center justify-center overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 shadow-inner dark:border-white/10 dark:bg-white/[0.045]">
+                <div className="relative mb-5 flex h-28 w-28 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.045] shadow-inner">
                     <Image
                         src={img}
                         alt={title}
@@ -102,11 +102,11 @@ function ChoiceCard({
                     />
                 </div>
 
-                <div className="text-[1.5rem] font-semibold leading-none tracking-tight text-slate-900 dark:text-white/95">
+                <div className="text-[1.5rem] font-semibold leading-none tracking-tight text-white/95">
                     {title}
                 </div>
 
-                <div className="mt-3 max-w-[12ch] text-base leading-7 text-slate-600 dark:text-white/72">
+                <div className="mt-3 max-w-[12ch] text-base leading-7 text-white/72">
                     {subtitle}
                 </div>
             </div>
