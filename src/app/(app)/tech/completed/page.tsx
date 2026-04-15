@@ -32,9 +32,9 @@ type ApiIssue = {
     resolvedAt?: string | null;
 };
 function statusColor(status: string) {
-    if (status === "IN_PROGRESS") return "text-amber-300";
-    if (status === "RESOLVED") return "text-emerald-300";
-    return "text-rose-300";
+    if (status === "IN_PROGRESS") return "text-amber-700 dark:text-amber-300";
+    if (status === "RESOLVED") return "text-emerald-700 dark:text-emerald-300";
+    return "text-rose-700 dark:text-rose-300";
 }
 function buildLocationText(issue: ApiIssue) {
     if (issue.locationText?.trim()) return issue.locationText.trim();
@@ -147,7 +147,7 @@ export default function TechCompletedPage() {
         return (
             <main className="min-h-screen px-6 py-6">
                 <div className="mx-auto max-w-7xl">
-                    <div className="text-sm text-white/60">Loading...</div>
+                    <div className="text-sm text-slate-600 dark:text-white/60">Loading...</div>
                 </div>
             </main>
         );
@@ -162,7 +162,7 @@ export default function TechCompletedPage() {
                 />
 
                 {closed.length === 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/60">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-black/20 dark:text-white/60">
                         No closed issues yet.
                     </div>
                 ) : (
@@ -171,22 +171,22 @@ export default function TechCompletedPage() {
                             <button
                                 key={issue.id}
                                 onClick={() => router.push(`/issues/${issue.id}`)}
-                                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-cyan-400/25 hover:bg-cyan-500/5"
+                                className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-cyan-300 hover:bg-cyan-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-cyan-400/25 dark:hover:bg-cyan-500/5"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <div className="text-base font-semibold text-white/90">
+                                        <div className="text-base font-semibold text-slate-900 dark:text-white/90">
                                             {issue.title || "(Untitled)"}
                                         </div>
-                                        <div className="mt-1 text-sm text-white/60">
+                                        <div className="mt-1 text-sm text-slate-600 dark:text-white/60">
                                             {issue.locationText || "Location not provided"}
                                         </div>
-                                        <div className="mt-2 text-xs text-white/55">
+                                        <div className="mt-2 text-xs text-slate-500 dark:text-white/55">
                                             {issue.section} • {issue.category}
                                         </div>
                                     </div>
 
-                                    <div className="shrink-0 text-right text-xs text-white/60">
+                                    <div className="shrink-0 text-right text-xs text-slate-600 dark:text-white/60">
                                         <div className="flex justify-end">
                                             <StatusBadge status="RESOLVED" />
                                         </div>

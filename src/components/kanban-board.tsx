@@ -26,13 +26,13 @@ function statusLabel(s: Status) {
 function headerBg(s: Status) {
   switch (s) {
     case "OPEN":
-      return "bg-blue-500/10";
+      return "bg-blue-50 dark:bg-blue-500/10";
     case "IN_PROGRESS":
-      return "bg-cyan-400/10";
+      return "bg-cyan-50 dark:bg-cyan-400/10";
     case "RESOLVED":
-      return "bg-emerald-400/10";
+      return "bg-emerald-50 dark:bg-emerald-400/10";
     default:
-      return "bg-white/5";
+      return "bg-slate-50 dark:bg-white/5";
   }
 }
 
@@ -82,32 +82,32 @@ export default function KanbanBoard({
       {grouped.map(({ status, items }) => (
         <section
           key={status}
-          className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.03]"
         >
           <header
             className={[
-              "flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3",
+              "flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10",
               headerBg(status),
             ].join(" ")}
           >
-            <div className="text-sm font-semibold text-white/85">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white/85">
               {statusLabel(status)}
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/60">
+            <div className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
               {items.length}
             </div>
           </header>
 
           <div className="grid gap-3 p-4">
             {items.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/60">
+              <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.02] dark:text-white/60">
                 No issues
               </div>
             ) : (
               items.map((i) => (
                 <div
                   key={i.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
                 >
                   <button
                     onClick={() => router.push(`/issues/${i.id}`)}
@@ -115,33 +115,33 @@ export default function KanbanBoard({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-white/90">
+                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-white/90">
                           {i.title || "(Untitled)"}
                         </div>
-                        <div className="mt-1 truncate text-xs text-white/60">
+                        <div className="mt-1 truncate text-xs text-slate-600 dark:text-white/60">
                           {i.locationText}
                         </div>
                       </div>
 
                       <div className="shrink-0 text-right">
-                        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-white/85">
                           {statusLabel(i.status)}
                         </div>
-                        <div className="mt-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
+                        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
                           {i.priority}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-white/60">
-                      <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600 dark:text-white/60">
+                      <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 dark:border-white/10 dark:bg-white/5">
                         {i.category}
                       </span>
-                      <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
+                      <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 dark:border-white/10 dark:bg-white/5">
                         {i.section}
                       </span>
                       {i.attachmentDataUrl ? (
-                        <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
+                        <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 dark:border-white/10 dark:bg-white/5">
                           Attachment
                         </span>
                       ) : null}
@@ -153,7 +153,7 @@ export default function KanbanBoard({
                       {i.status === "OPEN" ? (
                         <button
                           onClick={() => setStatus(i.id, "IN_PROGRESS")}
-                          className="h-9 rounded-xl border border-blue-400/30 bg-blue-500/10 px-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/15"
+                          className="h-9 rounded-xl border border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/15"
                         >
                           Start
                         </button>
@@ -162,7 +162,7 @@ export default function KanbanBoard({
                       {i.status === "IN_PROGRESS" ? (
                         <button
                           onClick={() => setStatus(i.id, "RESOLVED")}
-                          className="h-9 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15"
+                          className="h-9 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-400/25 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/15"
                         >
                           Resolve
                         </button>

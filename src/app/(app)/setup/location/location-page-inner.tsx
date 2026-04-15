@@ -63,20 +63,20 @@ export default function LocationPageInner() {
   return (
     <main className="min-h-[calc(100vh-64px)] px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Location</h1>
-        <p className="mt-2 text-sm text-white/60">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-4xl">Location</h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-white/60">
           {isHostel ? "Select block and room number." : "Select building and room/lab."}
         </p>
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/[0.04]">
           <div className="grid gap-4 sm:grid-cols-2">
             {isHostel ? (
               <>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Block</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-white/80">Block</label>
                   <select
                     value={block}
                     onChange={(e) => setBlock(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                   >
                     <option value="" disabled>-- select --</option>
                     {blocks.map((b) => (
@@ -85,23 +85,23 @@ export default function LocationPageInner() {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Room number</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-white/80">Room number</label>
                   <input
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
                     placeholder="e.g., 204"
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30"
                   />
                 </div>
               </>
             ) : (
               <>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Building</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-white/80">Building</label>
                   <select
                     value={building}
                     onChange={(e) => setBuilding(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                   >
                     <option value="" disabled>-- select --</option>
                     {CAMPUS_BUILDINGS.map((b) => (
@@ -110,12 +110,12 @@ export default function LocationPageInner() {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-white/80">Room / Lab</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-white/80">Room / Lab</label>
                   <input
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
                     placeholder="e.g., 312 / Lab 5"
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white/85 dark:placeholder:text-white/30"
                   />
                 </div>
               </>
@@ -127,8 +127,8 @@ export default function LocationPageInner() {
             className={[
               "mt-6 h-11 rounded-xl border px-5 text-sm font-semibold transition",
               canNext
-                ? "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15"
-                : "cursor-not-allowed border-white/10 bg-white/5 text-white/40",
+                ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/15"
+                : "cursor-not-allowed border-slate-200 bg-white text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white/40",
             ].join(" ")}
           >
             Next

@@ -64,9 +64,9 @@ type DetailIssue = {
   upvotedBy: string[];
 };
 function statusColor(status: IssueStatus) {
-  if (status === "IN_PROGRESS") return "text-amber-300";
-  if (status === "RESOLVED") return "text-emerald-300";
-  return "text-rose-300";
+  if (status === "IN_PROGRESS") return "text-amber-700 dark:text-amber-300";
+  if (status === "RESOLVED") return "text-emerald-700 dark:text-emerald-300";
+  return "text-rose-700 dark:text-rose-300";
 }
 function toPriority(value?: string): IssuePriority {
   const normalized = value?.trim().toUpperCase();
@@ -334,12 +334,12 @@ export default function IssueDetailsPage() {
         <div className="mx-auto max-w-4xl">
           <button
             onClick={() => router.back()}
-            className="mb-6 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10"
+            className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10"
           >
             ← Back
           </button>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-white/70">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/70">
             Issue not found.
           </div>
         </div>
@@ -353,44 +353,44 @@ export default function IssueDetailsPage() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
             onClick={() => router.push("/issues")}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10"
           >
             ← Back to issues
           </button>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/70">
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
               {issue.priority}
             </span>
             <StatusBadge status={issue.status} />
-            <span className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-200">
+            <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200">
               Score {score}
             </span>
             {issue.reviewState ? (
               <ReviewStateBadge reviewState={issue.reviewState} />
             ) : null}
-            <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-white/60">
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
               ID {issue.id}
             </span>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/[0.03]">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-3xl font-semibold tracking-tight text-white">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                 {issue.title}
               </h1>
 
-              <p className="mt-2 text-white/70">
+              <p className="mt-2 text-slate-600 dark:text-white/70">
                 {issue.locationText || "Location not provided"}
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/75">
+                <span className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75">
                   {issue.section}
                 </span>
-                <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/75">
+                <span className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/75">
                   {issue.category}
                 </span>
               </div>
@@ -400,7 +400,7 @@ export default function IssueDetailsPage() {
               <button
                 onClick={handleUpvote}
                 disabled={!voterId || togglingUpvote}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:border-blue-400/30 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10"
               >
                 {togglingUpvote
                   ? "Updating..."
@@ -409,14 +409,14 @@ export default function IssueDetailsPage() {
                     : "▲ Upvote"}
               </button>
 
-              <div className="mt-3 text-4xl font-semibold text-white">{score}</div>
+              <div className="mt-3 text-4xl font-semibold text-slate-900 dark:text-white">{score}</div>
 
               {!voterId ? (
-                <div className="mt-2 text-xs text-white/50">Sign in to vote</div>
+                <div className="mt-2 text-xs text-slate-500 dark:text-white/50">Sign in to vote</div>
               ) : null}
 
               {voterId && hasUpvoted ? (
-                <div className="mt-2 text-xs text-white/60">
+                <div className="mt-2 text-xs text-slate-600 dark:text-white/60">
                   You upvoted this issue
                 </div>
               ) : null}
@@ -424,22 +424,22 @@ export default function IssueDetailsPage() {
           </div>
 
           <div className="mt-6">
-            <div className="text-sm font-semibold text-white/70">Description</div>
-            <p className="mt-2 whitespace-pre-wrap text-white/85">
+            <div className="text-sm font-semibold text-slate-700 dark:text-white/70">Description</div>
+            <p className="mt-2 whitespace-pre-wrap text-slate-800 dark:text-white/85">
               {issue.description || "No description provided."}
             </p>
           </div>
 
           {isTech ? (
-            <div className="mt-6 border-t border-white/10 pt-6">
-              <div className="text-sm font-semibold text-white/70">Staff actions</div>
+            <div className="mt-6 border-t border-slate-200 pt-6 dark:border-white/10">
+              <div className="text-sm font-semibold text-slate-700 dark:text-white/70">Staff actions</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {issue.status === "OPEN" ? (
                   <button
                     type="button"
                     onClick={() => void handlePatchIssue({ status: "IN_PROGRESS" })}
                     disabled={updatingIssue}
-                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-60 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
                   >
                     Start
                   </button>
@@ -450,7 +450,7 @@ export default function IssueDetailsPage() {
                     type="button"
                     onClick={() => void handlePatchIssue({ status: "RESOLVED" })}
                     disabled={updatingIssue}
-                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-60 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
                   >
                     Resolve
                   </button>
@@ -461,7 +461,7 @@ export default function IssueDetailsPage() {
                     type="button"
                     onClick={() => void handlePatchIssue({ status: "OPEN" })}
                     disabled={updatingIssue}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                   >
                     Reopen
                   </button>
@@ -471,8 +471,8 @@ export default function IssueDetailsPage() {
           ) : null}
 
           {isAdmin ? (
-            <div className="mt-6 border-t border-white/10 pt-6">
-              <div className="text-sm font-semibold text-white/70">Admin actions</div>
+            <div className="mt-6 border-t border-slate-200 pt-6 dark:border-white/10">
+              <div className="text-sm font-semibold text-slate-700 dark:text-white/70">Admin actions</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {issue.reviewState !== "ASSIGNED" ? (
                   <button
@@ -484,7 +484,7 @@ export default function IssueDetailsPage() {
                       })
                     }
                     disabled={updatingIssue}
-                    className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 disabled:opacity-60 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-white"
                   >
                     Assign to staff
                   </button>
@@ -495,7 +495,7 @@ export default function IssueDetailsPage() {
                     type="button"
                     onClick={() => void handlePatchIssue({ reviewState: "REJECTED" })}
                     disabled={updatingIssue}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                   >
                     Reject
                   </button>
@@ -506,7 +506,7 @@ export default function IssueDetailsPage() {
                     type="button"
                     onClick={() => void handlePatchIssue({ reviewState: "PENDING" })}
                     disabled={updatingIssue}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/85 disabled:opacity-60"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white/85"
                   >
                     Reset
                   </button>
@@ -516,39 +516,39 @@ export default function IssueDetailsPage() {
           ) : null}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-          <div className="text-xl font-semibold text-white">Comments</div>
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="text-xl font-semibold text-slate-900 dark:text-white">Comments</div>
 
           <div className="mt-4 space-y-3">
             {issue.comments.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-white/60">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/60">
                 No comments yet.
               </div>
             ) : (
               issue.comments.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]"
                 >
-                  <div className="text-sm text-white/75">{c.text}</div>
+                  <div className="text-sm text-slate-700 dark:text-white/75">{c.text}</div>
                 </div>
               ))
             )}
           </div>
 
-          <div className="mt-6 border-t border-white/10 pt-6">
+          <div className="mt-6 border-t border-slate-200 pt-6 dark:border-white/10">
             <textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Add a comment..."
-              className="min-h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white outline-none placeholder:text-white/30 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20"
+              className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
             />
 
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleAddComment}
                 disabled={postingComment}
-                className="rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/15"
               >
                 {postingComment ? "Posting..." : "Post comment"}
               </button>
