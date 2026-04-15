@@ -43,21 +43,21 @@ export default function RolePageInner() {
                     <div className="grid gap-3 md:grid-cols-3">
                         <ChoiceCard
                             title="Student"
-                            subtitle="Raise issues, comment, vote"
+                            subtitle="Browse issues, report problems, track progress"
                             img="/illus/student.png"
                             active={picked === "STUDENT"}
                             onClick={() => choose("STUDENT")}
                         />
                         <ChoiceCard
                             title="Admin"
-                            subtitle="Review, assign, manage notices"
+                            subtitle="Review issues, assign staff, manage notices"
                             img="/illus/admin.png"
                             active={picked === "ADMIN"}
                             onClick={() => choose("ADMIN")}
                         />
                         <ChoiceCard
                             title="Staff"
-                            subtitle="Work queue, resolve issues"
+                            subtitle="Handle assigned issues, update progress, close work"
                             img="/illus/tech.png"
                             active={picked === "TECH"}
                             onClick={() => choose("TECH")}
