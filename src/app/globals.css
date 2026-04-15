@@ -1,13 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
   color-scheme: dark;
 }
-select, option {
+
+select,
+option {
   background-color: #0b1220;
   color: #eaf2ff;
 }
+
 :root {
   --bg: #050812;
   --text: #eaf2ff;
@@ -26,21 +30,6 @@ select, option {
   --border2: rgba(22, 142, 186, 0.28);
 
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #ffffff;
-    --text: #111827;
-    --muted: #6b7280;
-    --accent: #0077ff;
-    --accent2: #00b8ff;
-    --card: rgba(255, 255, 255, 0.85);
-    --card2: rgba(255, 255, 255, 0.72);
-    --border: rgba(15, 23, 42, 0.16);
-    --border2: rgba(0, 119, 255, 0.18);
-    --shadow: 0 20px 60px rgba(2, 6, 23, 0.14);
-  }
 }
 
 html,
@@ -106,6 +95,7 @@ a {
     border-color: var(--border);
   }
 }
+
 :root {
   /* keep your existing ones, add/override these */
   --card: rgba(9, 16, 28, 0.72);
@@ -118,11 +108,9 @@ a {
 /* global “premium card” look */
 @layer components {
   .glass {
-    background: linear-gradient(
-      135deg,
-      rgba(38, 198, 255, 0.10),
-      rgba(0, 0, 0, 0)
-    );
+    background: linear-gradient(135deg,
+        rgba(38, 198, 255, 0.10),
+        rgba(0, 0, 0, 0));
     border: 1px solid var(--borderBlue);
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.04) inset,
@@ -140,11 +128,9 @@ a {
   }
 
   .glass-green {
-    background: linear-gradient(
-      135deg,
-      rgba(0, 255, 213, 0.12),
-      rgba(38, 198, 255, 0.10)
-    );
+    background: linear-gradient(135deg,
+        rgba(0, 255, 213, 0.12),
+        rgba(38, 198, 255, 0.10));
     border: 1px solid rgba(0, 255, 213, 0.22);
     box-shadow:
       0 0 40px rgba(0, 255, 213, 0.10),
