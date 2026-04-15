@@ -102,7 +102,7 @@ function ChoiceCard({
                     />
                 </div>
 
-                <div className="text-[2rem] font-semibold leading-none tracking-tight text-white/95">
+                <div className="text-[1.75rem] font-semibold leading-none tracking-tight text-white/95">
                     {title}
                 </div>
 
