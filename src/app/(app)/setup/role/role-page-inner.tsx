@@ -102,11 +102,11 @@ function ChoiceCard({
                     />
                 </div>
 
-                <div className="text-[1.6rem] font-semibold leading-none tracking-tight text-white/95">
+                <div className="text-[1.5rem] font-semibold leading-none tracking-tight text-white/95">
                     {title}
                 </div>
 
-                <div className="mt-3 max-w-[16ch] text-base leading-6 text-white/72">
+                <div className="mt-3 max-w-[12ch] text-base leading-5 text-white/72">
                     {subtitle}
                 </div>
             </div>
