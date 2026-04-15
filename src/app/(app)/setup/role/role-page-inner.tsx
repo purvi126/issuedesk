@@ -39,8 +39,8 @@ export default function RolePageInner() {
                 </h1>
                 <p className="mt-2 text-sm text-white/60">Tap one to continue.</p>
 
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-                    <div className="grid gap-3 md:grid-cols-3">
+                <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+                    <div className="grid gap-4 md:grid-cols-3">
                         <ChoiceCard
                             title="Student"
                             subtitle="Browse issues, report problems, track progress"
@@ -68,7 +68,6 @@ export default function RolePageInner() {
         </main>
     );
 }
-
 function ChoiceCard({
     title,
     subtitle,
@@ -87,19 +86,20 @@ function ChoiceCard({
             type="button"
             onClick={onClick}
             className={[
-                "rounded-2xl border p-5 text-left transition",
+                "group h-full rounded-2xl border p-5 text-left transition-all duration-200",
                 active
-                    ? "border-blue-400/30 bg-blue-500/10"
-                    : "border-white/10 bg-white/5 hover:border-blue-400/25 hover:bg-blue-500/5",
+                    ? "border-cyan-400/30 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]"
+                    : "border-white/10 bg-white/[0.03] hover:border-cyan-400/20 hover:bg-white/[0.05]",
             ].join(" ")}
         >
-            <div className="flex items-center gap-4">
-                <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-                    <Image src={img} alt={title} fill className="object-contain p-3" />
+            <div className="flex flex-col items-start">
+                <div className="relative mb-4 h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                    <Image src={img} alt={title} fill className="object-contain p-2.5" />
                 </div>
-                <div className="min-w-0">
-                    <div className="text-base font-semibold text-white/90">{title}</div>
-                    <div className="mt-1 text-sm text-white/55">{subtitle}</div>
+
+                <div className="text-lg font-semibold text-white/95">{title}</div>
+                <div className="mt-1.5 text-sm leading-6 text-white/65">
+                    {subtitle}
                 </div>
             </div>
         </button>
