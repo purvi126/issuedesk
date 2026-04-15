@@ -93,7 +93,7 @@ function ChoiceCard({
             ].join(" ")}
         >
             <div className="flex flex-col items-start">
-                <div className="relative mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.045] shadow-inner">
+                <div className="relative mb-5 flex h-28 w-28 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.045] shadow-inner">
                     <Image
                         src={img}
                         alt={title}
