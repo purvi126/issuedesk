@@ -23,27 +23,27 @@ IssueDesk is designed as a campus issue management system with separate workflow
 
 ### Home Page
 <p align="center">
-  <img src="public/screenshots/home.png" alt="IssueDesk home page" width="850"/>
+  <img src="./public/screenshots/home.png" alt="IssueDesk home page" width="850"/>
 </p>
 
 ### Student Issue Reporting
 <p align="center">
-  <img src="public/screenshots/raise-issue.png" alt="Raise issue page" width="850"/>
+  <img src="./public/screenshots/raise-issue.png" alt="Raise issue page" width="850"/>
 </p>
 
 ### Issue Tracking Dashboard
 <p align="center">
-  <img src="public/screenshots/issues-dashboard.png" alt="Issues dashboard with filters" width="850"/>
+  <img src="./public/screenshots/issues-dashboard.png" alt="Issues dashboard with filters" width="850"/>
 </p>
 
 ### Comments and Upvotes
 <p align="center">
-  <img src="public/screenshots/issue-detail.png" alt="Issue detail page with comments and upvotes" width="850"/>
+  <img src="./public/screenshots/issue-detail.png" alt="Issue detail page with comments and upvotes" width="850"/>
 </p>
 
-### Admin Review Board
+### Staff Queue and Status Flow
 <p align="center">
-  <img src="public/screenshots/admin-board.png" alt="Admin review board" width="850"/>
+  <img src="./public/screenshots/staff-queue.png" alt="Staff queue showing open, in progress, and resolved issues" width="850"/>
 </p>
 
 ### Student
