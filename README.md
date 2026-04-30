@@ -9,9 +9,42 @@ IssueDesk helps users report campus problems, review them, assign them, track th
 
 ---
 
+## Problem
+
+In many campus spaces, complaints are still reported through registers, verbal updates, or informal messages. This makes it difficult for students to know whether their complaint was forwarded, assigned, or resolved.
+
+IssueDesk solves this by giving students, staff, and administrators a shared platform for reporting, reviewing, assigning, tracking, and closing campus issues.
+
 ## Overview
 
 IssueDesk is designed as a campus issue management system with separate workflows for different user roles.
+
+## Screenshots
+
+### Home Page
+<p align="center">
+  <img src="public/screenshots/home.png" alt="IssueDesk home page" width="850"/>
+</p>
+
+### Student Issue Reporting
+<p align="center">
+  <img src="public/screenshots/raise-issue.png" alt="Raise issue page" width="850"/>
+</p>
+
+### Issue Tracking Dashboard
+<p align="center">
+  <img src="public/screenshots/issues-dashboard.png" alt="Issues dashboard with filters" width="850"/>
+</p>
+
+### Comments and Upvotes
+<p align="center">
+  <img src="public/screenshots/issue-detail.png" alt="Issue detail page with comments and upvotes" width="850"/>
+</p>
+
+### Admin Review Board
+<p align="center">
+  <img src="public/screenshots/admin-board.png" alt="Admin review board" width="850"/>
+</p>
 
 ### Student
 Students can:
@@ -22,8 +55,8 @@ Students can:
 - track their own submissions
 - view active notices
 
-### Tech / Staff
-Tech and staff users can:
+### Staff
+Staff users can:
 - access assigned issues
 - update issue progress
 - mark issues as resolved
@@ -43,7 +76,7 @@ Administrators can:
 
 ## Highlights
 
-- Role-based access for Student, Tech/Staff, and Admin
+- Role-based access for Student, Staff, and Admin
 - Google sign-in with NextAuth
 - MongoDB-backed issue creation and persistence
 - Persistent comments and upvotes
@@ -357,10 +390,11 @@ The project is currently focused on stable MVP functionality with targeted impro
 
 ## Planned Improvements
 
-- better mobile responsiveness
-- toggleable sidebar
-- stronger route protection
-- improved email and notification flow
+- Improve mobile responsiveness for phone-based campus use
+- Add stronger route protection for role-specific pages
+- Add duplicate issue detection for similar complaints
+- Add analytics for most reported issue categories and resolution time
+- Improve email and in-app notification flow
 ---
 
 ## Author
